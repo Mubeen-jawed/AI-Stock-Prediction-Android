@@ -1,10 +1,10 @@
-import express from "express";
-import { protect } from "../middleware/authMiddleware.js";
-import {
+const express = require("express");
+const { protect } = require("../middleware/authMiddleware.js");
+const {
   createPortfolio,
   getPortfolioPerformance,
   deletePortfolio,
-} from "../controllers/portfolioController.js";
+} = require("../controllers/portfolioController.js");
 
 const router = express.Router();
 
@@ -13,4 +13,4 @@ router.post("/", protect, createPortfolio);
 router.delete("/:id", protect, deletePortfolio);
 router.get("/", getPortfolioPerformance);
 
-export default router;
+module.exports = router;

@@ -1,9 +1,10 @@
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv";
-import userRoutes from "./routes/userRoutes.js";
-import portfolioRoutes from "./routes/portfolioRoutes.js";
-import stockRoutes from "./routes/stockRoutes.js";
+const express = require("express");
+const cors = require("cors");
+const dotenv = require("dotenv");
+const userRoutes = require("./routes/userRoutes.js");
+const portfolioRoutes = require("./routes/portfolioRoutes.js");
+const stockRoutes = require("./routes/stockRoutes.js");
+const predictRoutes = require("./routes/predictRoutes.js");
 
 dotenv.config();
 
@@ -16,9 +17,17 @@ app.use(express.json());
 app.use("/api/users", userRoutes);
 app.use("/api/portfolio", portfolioRoutes);
 app.use("/api/stocks", stockRoutes);
-
+app.use("/predict", predictRoutes);
+// app.post("/predict", async (req, res) => {
+//   try {
+//     const { features } = req.body;
+//     const result = await predictPrice(features);
+//     res.json(result);
+//   } catch (err) {
+//     res.status(500).json({ error: err.toString() });
+//   }
+// });
 app.get("/", (req, res) => {
   res.send("AI Stock Portfolio Manager Backend Running 🚀");
 });
-
-export default app;
+module.exports = app;

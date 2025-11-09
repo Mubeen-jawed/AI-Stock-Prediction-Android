@@ -1,10 +1,30 @@
-import http from "http";
-import app from "./app.js";
+const http = require("http");
+const app = require("./app.js");
+const connectDB = require("./config/db.js"); // <-- add this
 
-const PORT = process.env.PORT || 5000;
+const DEFAULT_PORT = 6000;
 
-const server = http.createServer(app);
+async function startServer(port) {
+  try {
+    await connectDB();
 
-server.listen(PORT, () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
-});
+    const server = http.createServer(app);
+
+    server.listen(port, () => {
+      console.log(`🚀 Server running on port ${port}`);
+    });
+
+    server.on("error", (err) => {
+      if (err.code === "EADDRINUSE") {
+        console.log(`⚠️ Port ${port} is busy, trying ${port + 1}...`);
+        startServer(port + 1);
+      } else {
+        console.error("❌ Server error:", err);
+      }
+    });
+  } catch (err) {
+    console.error("❌ Failed to start server:", err);
+  }
+}
+
+startServer(DEFAULT_PORT);
