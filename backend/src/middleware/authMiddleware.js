@@ -1,7 +1,7 @@
-import jwt from "jsonwebtoken";
-import { User } from "../models/User.js";
+const jwt = require("jsonwebtoken");
+const { User } = require("../models/User.js");
 
-export const protect = async (req, res, next) => {
+const protect = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -21,3 +21,5 @@ export const protect = async (req, res, next) => {
     res.status(401).json({ message: "Invalid or expired token" });
   }
 };
+
+module.exports = { protect };

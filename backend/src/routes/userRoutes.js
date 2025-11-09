@@ -1,6 +1,6 @@
-import express from "express";
-import { registerUser, loginUser } from "../controllers/userController.js";
-import { protect } from "../middleware/authMiddleware.js";
+const express = require("express");
+const { registerUser, loginUser } = require("../controllers/userController.js");
+const { protect } = require("../middleware/authMiddleware.js");
 
 const router = express.Router();
 
@@ -12,4 +12,4 @@ router.get("/profile", protect, (req, res) => {
   res.json({ message: "Access granted 🚀", user: req.user });
 });
 
-export default router;
+module.exports = router;

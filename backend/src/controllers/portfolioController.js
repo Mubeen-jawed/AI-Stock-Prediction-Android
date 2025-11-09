@@ -1,7 +1,8 @@
-import { Portfolio } from "../models/Portfolio.js";
+const { Portfolio } = import("../models/Portfolio.js");
+const { getLivePrice } = import("../services/stockService.js");
 
 // Create new portfolio
-export const createPortfolio = async (req, res) => {
+const createPortfolio = async (req, res) => {
   try {
     const { stocks } = req.body;
 
@@ -25,7 +26,7 @@ export const createPortfolio = async (req, res) => {
 };
 
 // Get all portfolios of a user
-// export const getPortfolios = async (req, res) => {
+//  const getPortfolios = async (req, res) => {
 //   try {
 //     const portfolios = await Portfolio.find({ user: req.user._id });
 //     res.status(200).json(portfolios);
@@ -35,7 +36,7 @@ export const createPortfolio = async (req, res) => {
 // };
 
 // Delete a portfolio
-export const deletePortfolio = async (req, res) => {
+const deletePortfolio = async (req, res) => {
   try {
     const portfolio = await Portfolio.findById(req.params.id);
 
@@ -51,9 +52,8 @@ export const deletePortfolio = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-import { getLivePrice } from "../services/stockService.js";
 
-export const getPortfolioPerformance = async (req, res) => {
+const getPortfolioPerformance = async (req, res) => {
   try {
     const portfolio = [
       { symbol: "AAPL", shares: 10, avgBuyPrice: 150 },
@@ -86,3 +86,4 @@ export const getPortfolioPerformance = async (req, res) => {
     res.status(500).json({ message: "Error fetching portfolio data" });
   }
 };
+module.exports = { createPortfolio, deletePortfolio, getPortfolioPerformance };
