@@ -1,2 +1,4 @@
 backend/node_modules
 backend/.env
+
+backend/ai-models/price-prediction/venv
