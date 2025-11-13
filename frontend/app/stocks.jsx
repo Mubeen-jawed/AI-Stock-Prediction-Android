@@ -1,0 +1,117 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useEffect, useState } from "react";
+import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import SegmentTabs from "../components/SegmentTabs";
+import StockRow from "../components/StockRow";
+import { fetchStocks } from "../data/stocks";
+
+const TOP_TABS = ["Favorites", "Hot", "Pre-Market", "New", "Gainers"];
+// Bybit shows: Spot / Derivatives / TradFi. For stocks we map close to that:
+const SUB_TABS = ["Spot", "ETFs", "Indices", "TradFi"];
+
+export default function StocksScreen() {
+  const [topTab, setTopTab] = useState("Favorites");
+  const [subTab, setSubTab] = useState("Spot");
+  const [q, setQ] = useState("");
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  async function load() {
+    setLoading(true);
+    const data = await fetchStocks({ topTab, subTab, q });
+    setRows(data);
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    load();
+  }, [topTab, subTab, q]);
+
+  return (
+    <View style={styles.screen}>
+      {/* Search bar + icons */}
+      <View style={styles.header}>
+        <View style={styles.search}>
+          <Ionicons name="search" size={18} color="#9aa0a6" />
+          <TextInput
+            value={q}
+            onChangeText={setQ}
+            placeholder="Search AAPL/TSLA"
+            placeholderTextColor="#9aa0a6"
+            style={styles.input}
+          />
+        </View>
+        <Ionicons
+          name="create-outline"
+          size={22}
+          color="#e8eaed"
+          style={{ marginLeft: 12 }}
+        />
+      </View>
+
+      {/* Top tabs (Favorites | Hot | …) */}
+      <SegmentTabs tabs={TOP_TABS} active={topTab} onChange={setTopTab} />
+
+      {/* Sub tabs row (Spot | ETFs | Indices | TradFi) */}
+      <View style={{ marginTop: 8 }}>
+        <SegmentTabs tabs={SUB_TABS} active={subTab} onChange={setSubTab} />
+      </View>
+
+      {/* Table header (Bybit style labels) */}
+      <View style={styles.headRow}>
+        <Text style={[styles.hcell, { flex: 1.3 }]}>Trading Pairs / Vol •</Text>
+        <Text style={[styles.hcell, { flex: 1 }]}>Price •</Text>
+        <Text style={[styles.hcell, { width: 100, textAlign: "right" }]}>
+          24H Change •
+        </Text>
+      </View>
+
+      <ScrollView
+        style={styles.listCard}
+        contentContainerStyle={{ paddingVertical: 4 }}
+      >
+        {loading ? (
+          <Text style={styles.loading}>Loading…</Text>
+        ) : (
+          rows.map((s) => (
+            <StockRow
+              key={s.ticker}
+              logo={s.logo}
+              name={s.name}
+              ticker={s.ticker}
+              price={
+                typeof s.price === "number" ? s.price.toLocaleString() : s.price
+              }
+              pct={s.pct}
+              vol={`${s.vol} USD`}
+            />
+          ))
+        )}
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: "#0D0D0D", paddingTop: 40 },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingTop: 10,
+  },
+  search: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1A1A1A",
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    height: 36,
+  },
+  input: { flex: 1, color: "#fff", marginLeft: 6 },
+  headRow: { flexDirection: "row", paddingHorizontal: 16, marginTop: 14 },
+  hcell: { color: "#9aa0a6", fontSize: 12 },
+  listCard: { backgroundColor: "transparent", marginTop: 4 },
+  loading: { color: "#e8eaed", paddingHorizontal: 16, paddingVertical: 20 },
+});
