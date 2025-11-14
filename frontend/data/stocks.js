@@ -82,3 +82,8 @@ export async function fetchStocks({
 
   return rows;
 }
+
+export async function fetchAllStocks() {
+  await new Promise((r) => setTimeout(r, 150));
+  return SAMPLE;
+}

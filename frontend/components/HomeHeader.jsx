@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import {
   Image,
   StyleSheet,
@@ -8,12 +9,15 @@ import {
 } from "react-native";
 
 export default function HomeHeader() {
+  const router = useRouter();
   return (
     <View style={styles.wrap}>
-      <Image
-        source={{ uri: "https://i.pravatar.cc/64" }}
-        style={styles.avatar}
-      />
+      <TouchableOpacity onPress={() => router.push("/profile")}>
+        <Image
+          source={{ uri: "https://i.pravatar.cc/64" }}
+          style={styles.avatar}
+        />
+      </TouchableOpacity>
       <View style={styles.search}>
         <Ionicons name="search" size={18} color="#9aa0a6" />
         <TextInput
@@ -22,9 +26,6 @@ export default function HomeHeader() {
           style={styles.input}
         />
       </View>
-      <TouchableOpacity style={styles.icon}>
-        <Ionicons name="scan-outline" size={22} color="#e8eaed" />
-      </TouchableOpacity>
       <TouchableOpacity style={styles.icon}>
         <Ionicons name="notifications-outline" size={22} color="#e8eaed" />
       </TouchableOpacity>

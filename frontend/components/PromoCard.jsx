@@ -1,10 +1,14 @@
+import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, View } from "react-native";
+
 export default function PromoCard({ title, sub }) {
   return (
     <View style={styles.card}>
       <Text style={styles.tag}>Events</Text>
       <Text style={styles.title}>{title}</Text>
-      <Text style={styles.link}>Explore Now →</Text>
+      <Text style={styles.link}>
+        Explore Now <Ionicons name="chevron-forward" size={12} />
+      </Text>
     </View>
   );
 }

@@ -1,6 +1,9 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 
 export default function EventsList({ items }) {
+  const router = useRouter();
   return (
     <View style={styles.card}>
       <View style={{ flexDirection: "row" }}>
@@ -13,7 +16,9 @@ export default function EventsList({ items }) {
           <Text style={styles.date}>{e.date}</Text>
         </View>
       ))}
-      <Text style={styles.more}>More →</Text>
+      <Text onPress={() => router.push("/news")} style={styles.more}>
+        More <Ionicons name="chevron-forward" size={12} color="#e8eaed" />
+      </Text>
     </View>
   );
 }

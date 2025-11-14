@@ -1,3 +1,5 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
@@ -47,6 +49,8 @@ export default function Home() {
   const [topTab, setTopTab] = useState("Watchlist");
   const [subTab, setSubTab] = useState("Spot");
 
+  const router = useRouter();
+
   return (
     <View style={styles.screen}>
       <StatusBar style="light" />
@@ -83,18 +87,15 @@ export default function Home() {
           active={topTab}
           onChange={setTopTab}
         />
-        <SegmentTabs
-          tabs={["Spot", "ETFs", "Options", "Indices"]}
-          active={subTab}
-          onChange={setSubTab}
-        />
 
         {/* Stock list (gainers sample) */}
         <View style={styles.listCard}>
           {GAINERS.map((s) => (
             <StockRow key={s.ticker} {...s} />
           ))}
-          <Text style={styles.more}>More →</Text>
+          <Text onPress={() => router.push("/stocks")} style={styles.more}>
+            More <Ionicons name="chevron-forward" size={12} color="#e8eaed" />
+          </Text>
         </View>
 
         <EventsList

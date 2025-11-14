@@ -1,18 +1,24 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 const items = [
-  { icon: "card-outline", label: "Add Funds" },
-  { icon: "add-circle-outline", label: "Add Stock" },
-  { icon: "gift-outline", label: "Rewards" },
-  { icon: "ellipsis-horizontal-circle-outline", label: "More" },
+  // { icon: "card-outline", label: "Add Funds" },
+  { icon: "add-circle-outline", label: "Add Stock", route: "/add-stock" },
+  { icon: "gift-outline", label: "Rewards", route: "/rewards" },
+  { icon: "ellipsis-horizontal-circle-outline", label: "More", route: "/more" },
 ];
 
 export default function ActionRow() {
+  const router = useRouter();
   return (
     <View style={styles.row}>
       {items.map((i) => (
-        <TouchableOpacity key={i.label} style={styles.item}>
+        <TouchableOpacity
+          onPress={() => router.push(i.route)} // page to build next
+          key={i.label}
+          style={styles.item}
+        >
           <Ionicons name={i.icon} size={22} color="#e8eaed" />
           <Text style={styles.txt}>{i.label}</Text>
         </TouchableOpacity>
@@ -23,7 +29,7 @@ export default function ActionRow() {
 const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "space-around",
     paddingHorizontal: 18,
     paddingTop: 20,
   },

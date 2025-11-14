@@ -41,21 +41,12 @@ export default function StocksScreen() {
             style={styles.input}
           />
         </View>
-        <Ionicons
-          name="create-outline"
-          size={22}
-          color="#e8eaed"
-          style={{ marginLeft: 12 }}
-        />
       </View>
 
       {/* Top tabs (Favorites | Hot | …) */}
       <SegmentTabs tabs={TOP_TABS} active={topTab} onChange={setTopTab} />
 
       {/* Sub tabs row (Spot | ETFs | Indices | TradFi) */}
-      <View style={{ marginTop: 8 }}>
-        <SegmentTabs tabs={SUB_TABS} active={subTab} onChange={setSubTab} />
-      </View>
 
       {/* Table header (Bybit style labels) */}
       <View style={styles.headRow}>

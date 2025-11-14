@@ -1,0 +1,212 @@
+import { Ionicons } from "@expo/vector-icons";
+import { StatusBar } from "expo-status-bar";
+import { useEffect, useState } from "react";
+import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import { fetchProfile } from "../data/profile";
+
+export default function ProfileScreen() {
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      const data = await fetchProfile();
+      setProfile(data);
+    })();
+  }, []);
+
+  if (!profile) {
+    return (
+      <View
+        style={[
+          styles.screen,
+          { justifyContent: "center", alignItems: "center" },
+        ]}
+      >
+        <StatusBar style="light" />
+        <Text style={{ color: "#e8eaed" }}>Loading profile…</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.screen}>
+      <StatusBar style="light" />
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Image
+            source={{ uri: "https://i.pravatar.cc/80" }}
+            style={styles.avatar}
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.name}>{profile.emailMasked}</Text>
+            <Text style={styles.uid}>{profile.uid}</Text>
+            <Text style={styles.uid}>{profile.region}</Text>
+          </View>
+        </View>
+
+        {/* Status pills */}
+        {/* <View style={styles.badgeRow}>
+          <View style={styles.badge}>
+            <Ionicons name="shield-outline" size={14} color="#e8eaed" />
+            <Text style={styles.badgeText}>
+              {profile.verified ? "Verified" : "Unverified"}
+            </Text>
+          </View>
+          <View style={[styles.badge, { backgroundColor: "#262626" }]}>
+            <Text style={styles.badgeText}>{profile.tier}</Text>
+          </View>
+        </View> */}
+
+        {/* Verification card */}
+
+        {/* Two feature cards */}
+        <View style={styles.featureRow}>
+          <View style={styles.featureCard}>
+            <Ionicons name="wallet-outline" size={22} color="#e8eaed" />
+            <Text style={styles.featureTitle}>Your Portfolio</Text>
+            <Text style={styles.featureSub}>Check Now</Text>
+          </View>
+          <View style={styles.featureCard}>
+            <Ionicons name="heart-outline" size={22} color="#e8eaed" />
+            <Text style={styles.featureTitle}>Watchlist</Text>
+            <Text style={styles.featureSub}>Check Now</Text>
+          </View>
+        </View>
+
+        {/* Recently used */}
+
+        {/* Footer */}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            <Ionicons name="settings-outline" size={15} color="#e8eaed" />
+            Setting{" "}
+          </Text>
+          <View style={styles.footerDivider} />
+          <Text style={styles.footerText}>About Us →</Text>
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: "#0D0D0D", paddingTop: 80 },
+  header: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    alignItems: "center",
+  },
+  avatar: { width: 52, height: 52, borderRadius: 26, marginRight: 12 },
+  name: { color: "#e8eaed", fontSize: 18, fontWeight: "700" },
+  uid: { color: "#9aa0a6", fontSize: 11, marginTop: 2 },
+
+  badgeRow: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    marginTop: 10,
+  },
+  badge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1F1F1F",
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginRight: 8,
+  },
+  badgeText: { color: "#e8eaed", fontSize: 12, marginLeft: 4 },
+
+  verifyCard: {
+    backgroundColor: "#141414",
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  verifyTitle: { color: "#e8eaed", fontSize: 14, fontWeight: "600" },
+  verifyBtn: {
+    backgroundColor: "#FFB000",
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginLeft: 10,
+  },
+  verifyBtnText: {
+    color: "#141414",
+    fontWeight: "700",
+    fontSize: 13,
+  },
+
+  featureRow: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    marginTop: 16,
+  },
+  featureCard: {
+    flex: 1,
+    backgroundColor: "#141414",
+    borderRadius: 16,
+    padding: 14,
+    marginRight: 8,
+  },
+  featureTitle: {
+    color: "#e8eaed",
+    fontWeight: "700",
+    fontSize: 14,
+    marginTop: 10,
+  },
+  featureSub: { color: "#9aa0a6", fontSize: 12, marginTop: 2 },
+
+  sectionLabel: {
+    color: "#9aa0a6",
+    fontSize: 12,
+    marginHorizontal: 16,
+    marginTop: 22,
+  },
+  recentRow: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    marginTop: 10,
+  },
+  recentItem: { alignItems: "center", marginRight: 28 },
+  recentText: {
+    color: "#e8eaed",
+    fontSize: 12,
+    marginTop: 6,
+  },
+
+  allBtn: {
+    alignSelf: "center",
+    marginTop: 26,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#e8eaed",
+    paddingHorizontal: 24,
+    paddingVertical: 8,
+  },
+  allBtnText: { color: "#e8eaed", fontWeight: "700" },
+
+  footer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 28,
+  },
+  footerText: {
+    color: "#e8eaed",
+    fontSize: 15,
+    display: "flex",
+    alignItems: "center",
+    // gapHorizontal: 4,
+  },
+  footerDivider: {
+    width: 1,
+    height: 14,
+    backgroundColor: "#555",
+    marginHorizontal: 14,
+  },
+});
