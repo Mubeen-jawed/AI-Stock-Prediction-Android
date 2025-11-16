@@ -1,8 +1,15 @@
 const http = require("http");
 const app = require("./app.js");
 const connectDB = require("./config/db.js"); // <-- add this
+const cors = require("cors");
 
-const DEFAULT_PORT = 6000;
+app.use(
+  cors({
+    origin: "*", // or "http://localhost:19006" for Expo web
+  })
+);
+
+const DEFAULT_PORT = 4000;
 
 async function startServer(port) {
   try {

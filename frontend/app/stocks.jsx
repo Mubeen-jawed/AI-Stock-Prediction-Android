@@ -65,17 +65,18 @@ export default function StocksScreen() {
           <Text style={styles.loading}>Loading…</Text>
         ) : (
           rows.map((s) => (
+            // s.name && s.logo && s.symbol && s.price !== null && (
             <StockRow
-              key={s.ticker}
               logo={s.logo}
               name={s.name}
-              ticker={s.ticker}
+              ticker={s.symbol}
               price={
                 typeof s.price === "number" ? s.price.toLocaleString() : s.price
               }
-              pct={s.pct}
-              vol={`${s.vol} USD`}
+              changePercent={s.changePercent}
+              // vol={`${s.vol} USD`}
             />
+            // );
           ))
         )}
       </ScrollView>

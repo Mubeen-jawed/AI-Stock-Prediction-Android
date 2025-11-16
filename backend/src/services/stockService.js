@@ -73,4 +73,33 @@ async function fetchStockData(ticker = "AAPL") {
   return features;
 }
 
-module.exports = { getLivePrice, getAllSharesList, fetchStockData };
+const getCompanyProfile = async (symbol) => {
+  try {
+    const res = await axios.get(`${FINNHUB_BASE}/stock/profile2`, {
+      params: {
+        symbol,
+        token: process.env.FINNHUB_API_KEY,
+      },
+    });
+
+    const data = res.data;
+
+    return {
+      name: data.name,
+      logo: data.logo,
+      currency: data.currency,
+      exchange: data.exchange,
+      marketCap: data.marketCapitalization,
+    };
+  } catch (err) {
+    console.error("Error fetching company profile:", err.message);
+    throw new Error("Unable to fetch company profile");
+  }
+};
+
+module.exports = {
+  getLivePrice,
+  getAllSharesList,
+  fetchStockData,
+  getCompanyProfile,
+};
