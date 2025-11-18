@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import SegmentTabs from "../components/SegmentTabs";
-import StockRow from "../components/StockRow";
-import { fetchStocks } from "../data/stocks";
+import SegmentTabs from "../../components/SegmentTabs";
+import StockRow from "../../components/StockRow";
+import { fetchStocks } from "../../data/stocks";
+import { useAuth } from "../../context/AuthContext";
 
 const TOP_TABS = ["Favorites", "Hot", "Pre-Market", "New", "Gainers"];
 // Bybit shows: Spot / Derivatives / TradFi. For stocks we map close to that:
@@ -16,12 +17,19 @@ export default function StocksScreen() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  const { token } = useAuth();
+
   async function load() {
     setLoading(true);
     const data = await fetchStocks({ topTab, subTab, q });
     setRows(data);
     setLoading(false);
   }
+
+  useEffect(() => {
+    fetchStocks({ topTab, subTab, q, token });
+    console.log(token);
+  }, [topTab, subTab, q, token]);
 
   useEffect(() => {
     load();
@@ -64,20 +72,25 @@ export default function StocksScreen() {
         {loading ? (
           <Text style={styles.loading}>Loading…</Text>
         ) : (
-          rows.map((s) => (
-            // s.name && s.logo && s.symbol && s.price !== null && (
-            <StockRow
-              logo={s.logo}
-              name={s.name}
-              ticker={s.symbol}
-              price={
-                typeof s.price === "number" ? s.price.toLocaleString() : s.price
-              }
-              changePercent={s.changePercent}
-              // vol={`${s.vol} USD`}
-            />
-            // );
-          ))
+          rows
+            .filter(
+              (s) =>
+                s.name &&
+                s.logo &&
+                s.symbol &&
+                typeof s.price === "number" &&
+                s.changePercent !== undefined
+            )
+            .map((s) => (
+              <StockRow
+                key={s.symbol}
+                logo={s.logo}
+                name={s.name}
+                ticker={s.symbol}
+                price={s.price.toLocaleString()}
+                changePercent={s.changePercent}
+              />
+            ))
         )}
       </ScrollView>
     </View>

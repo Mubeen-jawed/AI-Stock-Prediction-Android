@@ -21,6 +21,7 @@ const registerUser = async (req, res) => {
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
+
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: "Invalid credentials" });
 
@@ -31,9 +32,28 @@ const loginUser = async (req, res) => {
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
-    res.status(200).json({ message: "Login successful", token });
+
+    // return user without password
+    const userData = {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone || null,
+    };
+
+    return res.status(200).json({
+      message: "Login successful",
+      token,
+      user: userData,
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 };
-module.exports = { registerUser, loginUser };
+
+// routes: router.post("/logout", logoutUser);
+const logoutUser = (req, res) => {
+  return res.status(200).json({ message: "Logged out" });
+};
+
+module.exports = { registerUser, loginUser, logoutUser };

@@ -2,6 +2,7 @@ import { Image, StyleSheet, Text, View } from "react-native";
 
 export default function StockRow({ logo, name, price, changePercent, ticker }) {
   const up = changePercent >= 0;
+
   return (
     <View key={name} style={styles.row}>
       <Image source={{ uri: logo }} style={styles.logo} />
@@ -9,7 +10,7 @@ export default function StockRow({ logo, name, price, changePercent, ticker }) {
         <Text style={styles.name}>
           {ticker} <Text style={styles.ticker}>/ USD</Text>
         </Text>
-        {/* <Text style={styles.vol}>{vol} USD</Text> */}
+        <Text style={styles.vol}>{name}</Text>
       </View>
       <View style={{ alignItems: "flex-end" }}>
         <Text style={styles.price}>${price}</Text>
@@ -22,8 +23,8 @@ export default function StockRow({ logo, name, price, changePercent, ticker }) {
               fontWeight: "700",
             }}
           >
-            {changePercent ? "+" : ""}
-            {/* {pct.toFixed(2)}% */}
+            {changePercent >= 0 ? "+" : ""}
+            {changePercent?.toFixed(2)}%
           </Text>
         </View>
       </View>
@@ -47,5 +48,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 4,
     paddingHorizontal: 10,
+    fontSize: 12,
   },
 });

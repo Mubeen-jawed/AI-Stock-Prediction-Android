@@ -2,10 +2,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
-import { fetchProfile } from "../data/profile";
+import { fetchProfile } from "../../data/profile";
+import { API_URL } from "../../config/config";
+import { useAuth } from "../../context/AuthContext";
+import { router } from "expo-router";
 
 export default function ProfileScreen() {
   const [profile, setProfile] = useState(null);
+  const { token, logout } = useAuth();
 
   useEffect(() => {
     (async () => {
@@ -27,6 +31,21 @@ export default function ProfileScreen() {
       </View>
     );
   }
+
+  const handleLogout = async () => {
+    try {
+      await fetch(`${API_URL}/api/users/logout`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch (e) {
+      console.log("Logout error (ignored):", e.message);
+    } finally {
+      console.log("logout");
+      await logout();
+      router.replace("/login"); // clears token from AsyncStorage + context → sends user back to auth flow
+    }
+  };
 
   return (
     <View style={styles.screen}>
@@ -83,7 +102,9 @@ export default function ProfileScreen() {
             Setting{" "}
           </Text>
           <View style={styles.footerDivider} />
-          <Text style={styles.footerText}>About Us →</Text>
+          <Text onPress={handleLogout} style={styles.footerText}>
+            Logout
+          </Text>
         </View>
       </ScrollView>
     </View>

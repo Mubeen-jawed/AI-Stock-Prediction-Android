@@ -5,7 +5,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 const items = [
   // { icon: "card-outline", label: "Add Funds" },
   { icon: "add-circle-outline", label: "Add Stock", route: "/add-stock" },
-  { icon: "gift-outline", label: "Rewards", route: "/rewards" },
+  { icon: "gift-outline", label: "Rewards", route: "/login" },
   { icon: "ellipsis-horizontal-circle-outline", label: "More", route: "/more" },
 ];
 

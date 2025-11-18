@@ -10,9 +10,9 @@ import {
   View,
 } from "react-native";
 
-import PortfolioSummaryCard from "../components/PortfolioSummaryCard";
-import PositionRow from "../components/PositionRow";
-import { fetchPortfolio } from "../data/portfolio";
+import PortfolioSummaryCard from "../../components/PortfolioSummaryCard";
+import PositionRow from "../../components/PositionRow";
+import { fetchPortfolio } from "../../data/portfolio";
 
 export default function PortfolioScreen() {
   const [portfolio, setPortfolio] = useState(null);

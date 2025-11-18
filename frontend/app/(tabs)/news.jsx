@@ -8,8 +8,8 @@ import {
   View,
 } from "react-native";
 
-import NewsCard from "../components/NewsCard";
-import { fetchNews } from "../data/news";
+import NewsCard from "../../components/NewsCard";
+import { fetchNews } from "../../data/news";
 
 const TABS = ["Latest Events"];
 

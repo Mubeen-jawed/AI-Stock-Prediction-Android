@@ -3,12 +3,12 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
-import ActionRow from "../components/ActionRow";
-import EventsList from "../components/EventsList";
-import HomeHeader from "../components/HomeHeader";
-import PromoCard from "../components/PromoCard";
-import SegmentTabs from "../components/SegmentTabs";
-import StockRow from "../components/StockRow";
+import ActionRow from "../../components/ActionRow";
+import EventsList from "../../components/EventsList";
+import HomeHeader from "../../components/HomeHeader";
+import PromoCard from "../../components/PromoCard";
+import SegmentTabs from "../../components/SegmentTabs";
+import StockRow from "../../components/StockRow";
 
 const GAINERS = [
   {
@@ -70,7 +70,7 @@ export default function Home() {
         <PromoCard title="Deposit $100 and get $20 bonus" />
 
         {/* Two promo chips row */}
-        <View style={styles.cardRow}>
+        {/* <View style={styles.cardRow}>
           <View style={styles.smallCard}>
             <Text style={styles.smallTitle}>Referral Bonus</Text>
             <Text style={styles.smallSub}>Earn $50 per friend</Text>
@@ -79,7 +79,7 @@ export default function Home() {
             <Text style={styles.smallTitle}>IPO Watch</Text>
             <Text style={styles.smallSub}>New listings this week</Text>
           </View>
-        </View>
+        </View> */}
 
         {/* Tabs like Bybit (top + sub) */}
         <SegmentTabs
