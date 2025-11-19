@@ -14,7 +14,17 @@ router.post("/logout", logoutUser);
 
 // Protected route example
 router.get("/profile", protect, (req, res) => {
-  res.json({ message: "Access granted 🚀", user: req.user });
+  const user = {
+    id: req.user._id,
+    name: req.user.name,
+    email: req.user.email,
+    phone: req.user.phone || null,
+  };
+
+  res.json({
+    message: "Access granted to protected profile route",
+    user,
+  });
 });
 
 module.exports = router;

@@ -1,16 +1,22 @@
-// data/portfolioApi.js
+import { API_URL } from "../config/config";
+// however you store token – context / AsyncStorage etc.
 
-export async function createPosition(position) {
-  // 🔁 Later: replace with real API, e.g.
-  // const res = await fetch("https://your-api/portfolio", {
-  //   method: "POST",
-  //   headers: { "Content-Type": "application/json" },
-  //   body: JSON.stringify(position),
-  // });
-  // return await res.json();
+export async function createPosition(position, token) {
+  const res = await fetch(`${API_URL}/api/portfolio`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`, // required by protect middleware
+    },
+    body: JSON.stringify({
+      stocks: [position], // controller expects { stocks: [...] }
+    }),
+  });
 
-  // For now, just mock:
-  await new Promise((r) => setTimeout(r, 200));
-  console.log("MOCK POST /portfolio", position);
-  return { success: true };
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || "Failed to create portfolio");
+  }
+
+  return res.json(); // { message, portfolio }
 }

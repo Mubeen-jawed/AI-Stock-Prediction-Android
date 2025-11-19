@@ -8,15 +8,23 @@ import { useAuth } from "../../context/AuthContext";
 import { router } from "expo-router";
 
 export default function ProfileScreen() {
-  const [profile, setProfile] = useState(null);
+  const [profile, setProfile] = useState({});
   const { token, logout } = useAuth();
 
   useEffect(() => {
     (async () => {
-      const data = await fetchProfile();
+      const data = fetchProfile(token);
       setProfile(data);
     })();
   }, []);
+
+  useEffect(() => {
+    fetchProfile(token)
+      .then((data) => setProfile(data))
+      .catch((error) => {
+        console.error("Error fetching profile:", error);
+      });
+  }, [token]);
 
   if (!profile) {
     return (
@@ -34,18 +42,19 @@ export default function ProfileScreen() {
 
   const handleLogout = async () => {
     try {
+      const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+
       await fetch(`${API_URL}/api/users/logout`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers,
       });
-    } catch (e) {
-      console.log("Logout error (ignored):", e.message);
     } finally {
-      console.log("logout");
       await logout();
-      router.replace("/login"); // clears token from AsyncStorage + context → sends user back to auth flow
+      router.replace("/login");
     }
   };
+
+  console.log(profile?.user, "profile");
 
   return (
     <View style={styles.screen}>
@@ -58,9 +67,17 @@ export default function ProfileScreen() {
             style={styles.avatar}
           />
           <View style={{ flex: 1 }}>
-            <Text style={styles.name}>{profile.emailMasked}</Text>
-            <Text style={styles.uid}>{profile.uid}</Text>
-            <Text style={styles.uid}>{profile.region}</Text>
+            <Text style={styles.name}>
+              {profile?.user?.email ? profile.user.email : "loading"}{" "}
+            </Text>
+            {/* <Text style={styles.uid}>
+              {profile?.user?.name ? profile.user.name : "loading"}
+            </Text> */}
+            <Text style={styles.uid}>
+              UID: {profile?.user?.id ? profile.user.id : "loading"}
+            </Text>
+
+            {/* <Text style={styles.uid}>{profile.region}</Text> */}
           </View>
         </View>
 
