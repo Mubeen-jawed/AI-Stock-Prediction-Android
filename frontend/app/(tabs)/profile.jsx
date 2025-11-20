@@ -54,7 +54,7 @@ export default function ProfileScreen() {
     }
   };
 
-  console.log(profile?.user, "profile");
+  // console.log(profile?.user, "profile");
 
   return (
     <View style={styles.screen}>
@@ -63,7 +63,11 @@ export default function ProfileScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Image
-            source={{ uri: "https://i.pravatar.cc/80" }}
+            source={{
+              uri: `https://ui-avatars.com/api/?name=${
+                profile?.user?.name || "User"
+              }&background=ffffff&color=000000&rounded=true&size=128`,
+            }}
             style={styles.avatar}
           />
           <View style={{ flex: 1 }}>

@@ -1,6 +1,7 @@
 // Minimal mock + drop-in API adapter.
 // Later: replace fetchStocks(...) with a real HTTP call.
 import { API_URL } from "../config/config";
+import { stocksData } from "./stocksData.js";
 
 // const SAMPLE = [
 //   {
@@ -107,6 +108,9 @@ export async function fetchStocks({
 }
 
 export async function fetchAllStocks() {
-  const res = await fetch(`${API_URL}/api/stocks?exchange=US&`);
-  return await res.json();
+  // const res = await fetch(`${API_URL}/api/stocks?exchange=US&`);
+  // return await res.json();
+
+  await new Promise((r) => setTimeout(r, 150));
+  return stocksData;
 }

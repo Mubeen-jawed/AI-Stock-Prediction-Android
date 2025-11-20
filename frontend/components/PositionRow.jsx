@@ -17,7 +17,7 @@ export default function PositionRow({ pos }) {
       </View>
 
       <View style={{ flex: 1 }}>
-        <Text style={styles.label}>Avg</Text>
+        <Text style={styles.label}>Buying</Text>
         <Text style={styles.value}>${pos.avgPrice.toFixed(2)}</Text>
         <Text style={styles.label}>Current</Text>
         <Text style={styles.value}>${pos.currentPrice.toFixed(2)}</Text>

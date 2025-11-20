@@ -11,6 +11,6 @@ const router = express.Router();
 router.post("/", protect, createPortfolio);
 // router.get("/", protect, getPortfolios);
 router.delete("/:id", protect, deletePortfolio);
-router.get("/", getPortfolioPerformance);
+router.get("/", protect, getPortfolioPerformance);
 
 module.exports = router;

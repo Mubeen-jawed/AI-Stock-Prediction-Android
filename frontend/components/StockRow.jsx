@@ -1,10 +1,18 @@
-import { Image, StyleSheet, Text, View } from "react-native";
+import { Image, TouchableOpacity, StyleSheet, Text, View } from "react-native";
+import { useRouter } from "expo-router";
 
 export default function StockRow({ logo, name, price, changePercent, ticker }) {
   const up = changePercent >= 0;
+  const router = useRouter();
 
   return (
-    <View key={name} style={styles.row}>
+    <TouchableOpacity
+      onPress={() => {
+        router.push(`/stocks/${ticker}`);
+      }}
+      key={name}
+      style={styles.row}
+    >
       <Image source={{ uri: logo }} style={styles.logo} />
       <View style={{ flex: 1 }}>
         <Text style={styles.name}>
@@ -21,6 +29,7 @@ export default function StockRow({ logo, name, price, changePercent, ticker }) {
             style={{
               color: changePercent >= 0 ? "#16C784" : "#EA3943",
               fontWeight: "700",
+              fontSize: 10,
             }}
           >
             {changePercent >= 0 ? "+" : ""}
@@ -28,7 +37,7 @@ export default function StockRow({ logo, name, price, changePercent, ticker }) {
           </Text>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 const styles = StyleSheet.create({

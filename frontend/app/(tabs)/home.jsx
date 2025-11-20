@@ -10,13 +10,15 @@ import PromoCard from "../../components/PromoCard";
 import SegmentTabs from "../../components/SegmentTabs";
 import StockRow from "../../components/StockRow";
 
+import { useAuth } from "../../context/AuthContext";
+
 const GAINERS = [
   {
     logo: "https://logo.clearbit.com/apple.com",
     name: "Apple",
     ticker: "AAPL",
     price: "228.54",
-    pct: 2.31,
+    changePercent: 2.31,
     vol: "24.8B",
   },
   {
@@ -24,7 +26,7 @@ const GAINERS = [
     name: "NVIDIA",
     ticker: "NVDA",
     price: "123.91",
-    pct: 1.12,
+    changePercent: 1.12,
     vol: "18.3B",
   },
   {
@@ -32,7 +34,7 @@ const GAINERS = [
     name: "Tesla",
     ticker: "TSLA",
     price: "254.02",
-    pct: 3.1,
+    changePercent: 3.1,
     vol: "12.4B",
   },
   {
@@ -40,7 +42,7 @@ const GAINERS = [
     name: "Microsoft",
     ticker: "MSFT",
     price: "425.77",
-    pct: 0.48,
+    changePercent: 0.48,
     vol: "9.7B",
   },
 ];
@@ -50,12 +52,13 @@ export default function Home() {
   const [subTab, setSubTab] = useState("Spot");
 
   const router = useRouter();
+  const { user } = useAuth();
 
   return (
     <View style={styles.screen}>
       <StatusBar style="light" />
       <ScrollView contentContainerStyle={{ paddingBottom: 28 }}>
-        <HomeHeader />
+        <HomeHeader user={user} />
 
         {/* Onboarding banner (Bybit "Verify Now" → Stock KYC) */}
         {/* <View style={styles.banner}>
@@ -66,6 +69,11 @@ export default function Home() {
         </View> */}
 
         <ActionRow />
+
+        <Text style={styles.welcomeText}>
+          Welcome back,
+          <Text style={styles.userName}> {user?.name || "Guest"} </Text>
+        </Text>
 
         <PromoCard title="Deposit $100 and get $20 bonus" />
 
@@ -118,6 +126,21 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 16,
   },
+  welcomeText: {
+    color: "#e8eaed",
+    fontSize: 22,
+    fontWeight: "600",
+    paddingHorizontal: 24,
+    paddingVertical: 15,
+    letterSpacing: 0.5,
+  },
+
+  userName: {
+    color: "#FFD700", // Bybit accent color
+    fontWeight: "700",
+    fontSize: 24,
+  },
+
   bannerTitle: {
     color: "#e8eaed",
     fontSize: 18,

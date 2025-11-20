@@ -72,6 +72,19 @@ export default function TabsLayout() {
           href: null, // hidden
         }}
       />
+
+      <Tabs.Screen
+        name="stockPage"
+        options={{
+          href: null, // hidden
+        }}
+      />
+      <Tabs.Screen
+        name="stocks/[symbol]"
+        options={{
+          href: null, // hidden
+        }}
+      />
     </Tabs>
   );
 }

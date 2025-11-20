@@ -1,72 +1,74 @@
-// data/portfolio.js
+import { API_URL } from "../config/config";
 
-// This is the ONLY file you’ll touch later for backend.
-// Keep the returned shape the same.
+export async function fetchPortfolio(token) {
+  try {
+    const res = await fetch(`${API_URL}/api/portfolio`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
-const SAMPLE_PORTFOLIO = {
-  positions: [
-    {
-      ticker: "AAPL",
-      name: "Apple",
-      quantity: 15,
-      avgPrice: 210.5,
-      currentPrice: 228.54,
-    },
-    {
-      ticker: "NVDA",
-      name: "NVIDIA",
-      quantity: 8,
-      avgPrice: 115.2,
-      currentPrice: 123.91,
-    },
-    {
-      ticker: "TSLA",
-      name: "Tesla",
-      quantity: 5,
-      avgPrice: 240.0,
-      currentPrice: 254.02,
-    },
-  ],
-  summary: {
-    totalInvested: 0, // will be filled below
-    currentValue: 0,
-    pl: 0,
-    plPercent: 0,
-  },
-  distribution: [], // [{ ticker, value }]
-  predictions: [
-    { day: 0, value: 100 },
-    { day: 10, value: 105 },
-    { day: 20, value: 109 },
-    { day: 30, value: 112 },
-  ],
-};
+    const data = await res.json();
 
-function enrichSample() {
-  const p = SAMPLE_PORTFOLIO;
-  let invested = 0;
-  let current = 0;
+    console.log(data);
 
-  p.positions.forEach((pos) => {
-    invested += pos.quantity * pos.avgPrice;
-    current += pos.quantity * pos.currentPrice;
-  });
+    if (!res.ok) {
+      throw new Error(data.message || "Failed to fetch portfolio");
+    }
 
-  p.summary.totalInvested = invested;
-  p.summary.currentValue = current;
-  p.summary.pl = current - invested;
-  p.summary.plPercent = invested ? ((current - invested) / invested) * 100 : 0;
+    if (!data.portfolio || data.portfolio.length === 0) {
+      return {
+        positions: [],
+        summary: {
+          totalInvested: 0,
+          currentValue: 0,
+          pl: 0,
+          plPercent: 0,
+        },
+        distribution: [],
+        predictions: [],
+      };
+    }
 
-  p.distribution = p.positions.map((pos) => ({
-    ticker: pos.ticker,
-    value: pos.quantity * pos.currentPrice,
-  }));
+    // Convert backend shape → frontend UI shape
+    const positions = data.portfolio.map((s) => ({
+      symbol: s.symbol,
+      name: s.companyName,
+      quantity: s.quantity,
+      avgPrice: s.buyPrice,
+      currentPrice: s.currentPrice,
+    }));
 
-  return p;
-}
+    // Calculate summary + distribution
+    let invested = 0;
+    let current = 0;
 
-export async function fetchPortfolio() {
-  // later: replace this with real fetch(...)
-  await new Promise((r) => setTimeout(r, 150));
-  return enrichSample();
+    positions.forEach((pos) => {
+      invested += pos.quantity * pos.avgPrice;
+      current += pos.quantity * pos.currentPrice;
+    });
+
+    const summary = {
+      totalInvested: invested,
+      currentValue: current,
+      pl: current - invested,
+      plPercent: invested ? ((current - invested) / invested) * 100 : 0,
+    };
+
+    const distribution = positions.map((pos) => ({
+      symbol: pos.symbol,
+      value: pos.quantity * pos.currentPrice,
+    }));
+
+    return {
+      positions,
+      summary,
+      distribution,
+      predictions: [], // Fill once backend provides real predictions
+    };
+  } catch (err) {
+    console.log("Portfolio fetch error:", err);
+    throw err;
+  }
 }

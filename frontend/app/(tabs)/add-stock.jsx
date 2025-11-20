@@ -16,17 +16,20 @@ import {
 } from "react-native";
 import { createPosition } from "../../data/portfolioApi";
 import { fetchAllStocks } from "../../data/stocks";
+import { useAuth } from "../../context/AuthContext";
 
 export default function AddStockScreen() {
   const router = useRouter();
+  const { token } = useAuth();
 
   const [allStocks, setAllStocks] = useState([]);
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState(null);
   const [showList, setShowList] = useState(false);
 
+  const [selected, setSelected] = useState(null);
   const [qty, setQty] = useState("");
   const [price, setPrice] = useState("");
+
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -40,11 +43,11 @@ export default function AddStockScreen() {
 
   const filteredStocks = useMemo(() => {
     if (!search.trim()) return allStocks;
-    console.log(allStocks);
     const q = search.toLowerCase();
     return allStocks.filter(
       (s) =>
-        s.ticker.toLowerCase().includes(q) || s.name.toLowerCase().includes(q)
+        s.symbol.toLowerCase().includes(q) ||
+        s.companyName.toLowerCase().includes(q)
     );
   }, [allStocks, search]);
 
@@ -67,26 +70,32 @@ export default function AddStockScreen() {
     setSaving(true);
 
     const payload = {
-      ticker: selected.ticker,
-      name: selected.name,
+      logo: selected.logo,
+      symbol: selected.symbol,
+      companyName: selected.companyName,
       quantity: parseFloat(qty),
       buyPrice: parseFloat(price),
+      currentPrice: selected.currentPrice,
     };
 
+    console.log("token:", token);
+
     try {
-      const res = await createPosition(payload);
-      if (res?.success) {
+      const res = await createPosition(payload, token);
+      if (res?.portfolio) {
         Alert.alert(
           "Added to portfolio",
-          `${payload.quantity} x ${payload.ticker} @ $${payload.buyPrice}`,
-          [{ text: "OK", onPress: () => router.back() }]
+          `${payload.quantity} x ${payload.symbol} @ $${payload.buyPrice}`,
+          [{ text: "OK", onPress: () => router.push("/portfolio") }]
         );
       } else {
         Alert.alert("Error", "Could not save position (mock).");
       }
     } catch (e) {
-      Alert.alert("Error", "Something went wrong.");
+      Alert.alert("Error", "Something went wrong: ");
+      console.log("Error: ", e);
     } finally {
+      ``;
       setSaving(false);
     }
   }
@@ -106,7 +115,7 @@ export default function AddStockScreen() {
           >
             <Ionicons name="chevron-back" size={22} color="#e8eaed" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Add Stock</Text>
+          <Text style={styles.headerTitle}>Add Portfolio</Text>
           <View style={{ width: 30 }} />
         </View>
 
@@ -129,7 +138,7 @@ export default function AddStockScreen() {
                 }}
                 placeholder={
                   selected
-                    ? `${selected.ticker} • ${selected.name}`
+                    ? `${selected.symbol} • ${selected.companyName}`
                     : "Search AAPL/TSLA"
                 }
                 placeholderTextColor="#9aa0a6"
@@ -149,7 +158,7 @@ export default function AddStockScreen() {
                 <ScrollView style={{ maxHeight: 220 }}>
                   {filteredStocks.map((s) => (
                     <TouchableOpacity
-                      key={s.ticker}
+                      key={s.symbol}
                       style={styles.stockRow}
                       onPress={() => {
                         setSelected(s);
@@ -158,7 +167,7 @@ export default function AddStockScreen() {
                       }}
                     >
                       <Text style={styles.stockMain}>
-                        {s.ticker} • {s.name}
+                        {s.symbol} • {s.companyName}
                       </Text>
                     </TouchableOpacity>
                   ))}

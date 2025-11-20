@@ -8,13 +8,17 @@ import {
   View,
 } from "react-native";
 
-export default function HomeHeader() {
+export default function HomeHeader({ user }) {
   const router = useRouter();
   return (
     <View style={styles.wrap}>
       <TouchableOpacity onPress={() => router.push("/profile")}>
         <Image
-          source={{ uri: "https://i.pravatar.cc/64" }}
+          source={{
+            uri: `https://ui-avatars.com/api/?name=${
+              user?.name || "User"
+            }&background=ffffff&color=000000&rounded=true&size=128`,
+          }}
           style={styles.avatar}
         />
       </TouchableOpacity>

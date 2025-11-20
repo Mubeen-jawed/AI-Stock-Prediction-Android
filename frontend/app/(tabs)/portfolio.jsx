@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import { useState, useCallback } from "react";
+import { useFocusEffect } from "expo-router";
 import {
   ScrollView,
   StyleSheet,
@@ -10,24 +11,33 @@ import {
   View,
 } from "react-native";
 
-import PortfolioSummaryCard from "../components/PortfolioSummaryCard";
-import PositionRow from "../components/PositionRow";
-import { fetchPortfolio } from "../data/portfolio";
+import PortfolioSummaryCard from "../../components/PortfolioSummaryCard";
+import PositionRow from "../../components/PositionRow";
+import { fetchPortfolio } from "../../data/portfolio";
+import { useAuth } from "../../context/AuthContext";
 
 export default function PortfolioScreen() {
   const [portfolio, setPortfolio] = useState(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { token } = useAuth();
 
-  useEffect(() => {
-    async function load() {
+  async function load() {
+    try {
       setLoading(true);
-      const data = await fetchPortfolio();
+      const data = await fetchPortfolio(token);
       setPortfolio(data);
+    } finally {
       setLoading(false);
     }
-    load();
-  }, []);
+  }
+
+  // 🔥 Runs every time the screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [token])
+  );
 
   return (
     <View style={styles.screen}>
@@ -51,12 +61,12 @@ export default function PortfolioScreen() {
                 <View style={{ marginLeft: 16, flex: 1 }}>
                   {portfolio.distribution.map((d) => (
                     <View
-                      key={d.ticker}
+                      key={d.symbol}
                       style={{ flexDirection: "row", marginBottom: 6 }}
                     >
                       <View style={styles.legendDot} />
                       <Text style={styles.legendText}>
-                        {d.ticker} • ${d.value.toFixed(2)}
+                        {d.symbol} • ${d.value.toFixed(2)}
                       </Text>
                     </View>
                   ))}
@@ -87,7 +97,7 @@ export default function PortfolioScreen() {
               </View>
 
               {portfolio.positions.map((pos) => (
-                <PositionRow key={pos.ticker} pos={pos} />
+                <PositionRow key={pos.symbol} pos={pos} />
               ))}
             </View>
           </>
@@ -100,7 +110,7 @@ export default function PortfolioScreen() {
         onPress={() => router.push("/add-stock")} // page to build next
       >
         <Ionicons name="add" size={22} color="#141414" />
-        <Text style={styles.fabText}>Add Stock</Text>
+        <Text style={styles.fabText}>Add Portfolio</Text>
       </TouchableOpacity>
     </View>
   );

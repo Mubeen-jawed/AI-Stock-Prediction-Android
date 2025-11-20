@@ -7,7 +7,8 @@ export default function PromoCard({ title, sub }) {
       <Text style={styles.tag}>Events</Text>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.link}>
-        Explore Now <Ionicons name="chevron-forward" size={12} />
+        Explore Now
+        {/* <Ionicons name="chevron-forward" size={12} /> */}
       </Text>
     </View>
   );

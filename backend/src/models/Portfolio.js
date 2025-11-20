@@ -9,6 +9,7 @@ const portfolioSchema = new mongoose.Schema(
     },
     stocks: [
       {
+        logo: { type: String },
         symbol: { type: String, required: true },
         companyName: { type: String },
         quantity: { type: Number, required: true },
@@ -22,5 +23,4 @@ const portfolioSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const Portfolio = mongoose.model("Portfolio", portfolioSchema);
-module.exports = { Portfolio };
+module.exports = mongoose.model("Portfolio", portfolioSchema);

@@ -1,7 +1,7 @@
 import { API_URL } from "../config/config";
 // however you store token – context / AsyncStorage etc.
 
-export async function createPosition(position, token) {
+export async function createPosition(payload, token) {
   const res = await fetch(`${API_URL}/api/portfolio`, {
     method: "POST",
     headers: {
@@ -9,7 +9,7 @@ export async function createPosition(position, token) {
       Authorization: `Bearer ${token}`, // required by protect middleware
     },
     body: JSON.stringify({
-      stocks: [position], // controller expects { stocks: [...] }
+      stocks: [payload], // controller expects { stocks: [...] }
     }),
   });
 
