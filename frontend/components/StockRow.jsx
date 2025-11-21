@@ -9,6 +9,7 @@ export default function StockRow({ logo, name, price, changePercent, ticker }) {
     <TouchableOpacity
       onPress={() => {
         router.push(`/stocks/${ticker}`);
+        console.log(ticker, "ticker");
       }}
       key={name}
       style={styles.row}

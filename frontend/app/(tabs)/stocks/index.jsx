@@ -1,10 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import SegmentTabs from "../../components/SegmentTabs";
-import StockRow from "../../components/StockRow";
-import { fetchStocks } from "../../data/stocks";
-import { useAuth } from "../../context/AuthContext";
+import SegmentTabs from "../../../components/SegmentTabs";
+import StockRow from "../../../components/StockRow";
+import { fetchStocks } from "../../../data/stocks";
+import { useAuth } from "../../../context/AuthContext";
 
 const TOP_TABS = ["Favorites", "Hot", "Pre-Market", "New", "Gainers"];
 // Bybit shows: Spot / Derivatives / TradFi. For stocks we map close to that:

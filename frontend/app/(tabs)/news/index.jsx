@@ -8,8 +8,9 @@ import {
   View,
 } from "react-native";
 
-import NewsCard from "../../components/NewsCard";
-import { fetchNews } from "../../data/news";
+import NewsCard from "../../../components/NewsCard";
+import { fetchNews } from "../../../data/news";
+import { useAuth } from "../../../context/AuthContext";
 
 const TABS = ["Latest Events"];
 
@@ -18,9 +19,11 @@ export default function NewsScreen() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  const { token } = useAuth();
+
   async function load() {
     setLoading(true);
-    const data = await fetchNews({ tab: activeTab });
+    const data = await fetchNews(token);
     setItems(data);
     setLoading(false);
   }
@@ -65,7 +68,7 @@ export default function NewsScreen() {
         {loading ? (
           <Text style={styles.loading}>Loading…</Text>
         ) : (
-          items.map((item) => <NewsCard key={item.id} item={item} />)
+          items?.map((item) => <NewsCard key={item.id} item={item} />)
         )}
       </ScrollView>
     </View>

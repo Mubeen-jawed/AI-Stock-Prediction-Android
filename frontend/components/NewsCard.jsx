@@ -1,8 +1,13 @@
-import { Image, StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useRouter } from "expo-router";
 
 export default function NewsCard({ item }) {
+  const router = useRouter();
   return (
-    <View style={styles.row}>
+    <TouchableOpacity
+      onPress={() => router.push(`/news/${item.id}`)}
+      style={styles.row}
+    >
       {/* LEFT CONTENT */}
       <View style={styles.left}>
         <Text numberOfLines={2} style={styles.title}>
@@ -12,14 +17,14 @@ export default function NewsCard({ item }) {
         <View style={styles.metaRow}>
           <Text style={styles.date}>{item.date}</Text>
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>{item.status}</Text>
+            <Text style={styles.badgeText}>Ongoing</Text>
           </View>
         </View>
       </View>
 
       {/* IMAGE */}
       <Image source={{ uri: item.image }} style={styles.thumb} />
-    </View>
+    </TouchableOpacity>
   );
 }
 

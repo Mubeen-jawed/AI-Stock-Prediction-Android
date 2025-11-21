@@ -14,9 +14,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { createPosition } from "../../data/portfolioApi";
-import { fetchAllStocks } from "../../data/stocks";
-import { useAuth } from "../../context/AuthContext";
+import { createPosition } from "../../../data/portfolioApi";
+import { fetchAllStocks } from "../../../data/stocks";
+import { useAuth } from "../../../context/AuthContext";
 
 export default function AddStockScreen() {
   const router = useRouter();

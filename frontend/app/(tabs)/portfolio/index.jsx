@@ -11,10 +11,10 @@ import {
   View,
 } from "react-native";
 
-import PortfolioSummaryCard from "../../components/PortfolioSummaryCard";
-import PositionRow from "../../components/PositionRow";
-import { fetchPortfolio } from "../../data/portfolio";
-import { useAuth } from "../../context/AuthContext";
+import PortfolioSummaryCard from "../../../components/PortfolioSummaryCard";
+import PositionRow from "../../../components/PositionRow";
+import { fetchPortfolio } from "../../../data/portfolio";
+import { useAuth } from "../../../context/AuthContext";
 
 export default function PortfolioScreen() {
   const [portfolio, setPortfolio] = useState(null);
@@ -107,7 +107,7 @@ export default function PortfolioScreen() {
       {/* Fixed Add Stock button */}
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => router.push("/add-stock")} // page to build next
+        onPress={() => router.push("/portfolio/add-stock")} // page to build next
       >
         <Ionicons name="add" size={22} color="#141414" />
         <Text style={styles.fabText}>Add Portfolio</Text>

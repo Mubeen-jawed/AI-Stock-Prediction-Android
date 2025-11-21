@@ -66,25 +66,26 @@ export default function TabsLayout() {
         }}
       />
 
-      <Tabs.Screen
-        name="add-stock"
+      {/* <Tabs.Screen
+        name="portfolio/add-stock"
         options={{
           href: null, // hidden
         }}
       />
 
       <Tabs.Screen
-        name="stockPage"
+        name="stocks/[ticker]"
         options={{
           href: null, // hidden
         }}
       />
+
       <Tabs.Screen
-        name="stocks/[symbol]"
+        name="news/[id]"
         options={{
           href: null, // hidden
         }}
-      />
+      /> */}
     </Tabs>
   );
 }
