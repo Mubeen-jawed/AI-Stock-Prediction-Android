@@ -14,11 +14,17 @@ import { API_URL } from "../config/config";
 //   ],
 // };
 
-export async function fetchProfile(token) {
+export async function fetchProfile(token, router) {
   const res = await fetch(`${API_URL}/api/users/profile`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
   });
+
+  if (res.status === 401) {
+    router.replace("/login");
+    return;
+  }
+
   return await res.json();
 }

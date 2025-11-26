@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import {
@@ -10,6 +11,9 @@ import {
 
 export default function HomeHeader({ user }) {
   const router = useRouter();
+
+  const [q, setQ] = useState("");
+
   return (
     <View style={styles.wrap}>
       <TouchableOpacity onPress={() => router.push("/profile")}>
@@ -28,9 +32,13 @@ export default function HomeHeader({ user }) {
           placeholder="Search AAPL/TSLA"
           placeholderTextColor="#9aa0a6"
           style={styles.input}
+          onChangeText={setQ}
         />
       </View>
-      <TouchableOpacity style={styles.icon}>
+      <TouchableOpacity
+        onPress={() => router.push("/notification")}
+        style={styles.icon}
+      >
         <Ionicons name="notifications-outline" size={22} color="#e8eaed" />
       </TouchableOpacity>
     </View>

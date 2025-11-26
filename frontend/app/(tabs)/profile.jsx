@@ -1,32 +1,28 @@
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
-import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+} from "react-native";
 import { fetchProfile } from "../../data/profile";
 import { API_URL } from "../../config/config";
 import { useAuth } from "../../context/AuthContext";
 import { router } from "expo-router";
 
 export default function ProfileScreen() {
-  const [profile, setProfile] = useState({});
+  // const [profile, setProfile] = useState({});
   const { token, logout } = useAuth();
 
-  useEffect(() => {
-    (async () => {
-      const data = fetchProfile(token);
-      setProfile(data);
-    })();
-  }, []);
+  const { user } = useAuth();
 
-  useEffect(() => {
-    fetchProfile(token)
-      .then((data) => setProfile(data))
-      .catch((error) => {
-        console.error("Error fetching profile:", error);
-      });
-  }, [token]);
+  console.log(user);
 
-  if (!profile) {
+  if (!user) {
     return (
       <View
         style={[
@@ -65,20 +61,20 @@ export default function ProfileScreen() {
           <Image
             source={{
               uri: `https://ui-avatars.com/api/?name=${
-                profile?.user?.name || "User"
+                user?.name || "User"
               }&background=ffffff&color=000000&rounded=true&size=128`,
             }}
             style={styles.avatar}
           />
           <View style={{ flex: 1 }}>
             <Text style={styles.name}>
-              {profile?.user?.email ? profile.user.email : "loading"}{" "}
+              {user?.email ? user.email : "loading"}{" "}
             </Text>
             {/* <Text style={styles.uid}>
               {profile?.user?.name ? profile.user.name : "loading"}
             </Text> */}
             <Text style={styles.uid}>
-              UID: {profile?.user?.id ? profile.user.id : "loading"}
+              UID: {user?.id ? user.id : "loading"}
             </Text>
 
             {/* <Text style={styles.uid}>{profile.region}</Text> */}
@@ -102,11 +98,14 @@ export default function ProfileScreen() {
 
         {/* Two feature cards */}
         <View style={styles.featureRow}>
-          <View style={styles.featureCard}>
+          <TouchableOpacity
+            onPress={() => router.push("/portfolio")}
+            style={styles.featureCard}
+          >
             <Ionicons name="wallet-outline" size={22} color="#e8eaed" />
             <Text style={styles.featureTitle}>Your Portfolio</Text>
             <Text style={styles.featureSub}>Check Now</Text>
-          </View>
+          </TouchableOpacity>
           <View style={styles.featureCard}>
             <Ionicons name="heart-outline" size={22} color="#e8eaed" />
             <Text style={styles.featureTitle}>Watchlist</Text>
@@ -118,11 +117,15 @@ export default function ProfileScreen() {
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>
+          {/* <Text style={styles.footerText}>
             <Ionicons name="settings-outline" size={15} color="#e8eaed" />
-            Setting{" "}
+            <Text style={styles.settingText}>Setting</Text>
+          </Text> */}
+          {/* <View style={styles.footerDivider} /> */}
+          <Text>
+            {" "}
+            <Ionicons color="#f75858ff" name="log-out-outline" size={20} />
           </Text>
-          <View style={styles.footerDivider} />
           <Text onPress={handleLogout} style={styles.footerText}>
             Logout
           </Text>
@@ -171,7 +174,7 @@ const styles = StyleSheet.create({
   },
   verifyTitle: { color: "#e8eaed", fontSize: 14, fontWeight: "600" },
   verifyBtn: {
-    backgroundColor: "#FFB000",
+    backgroundColor: "#FFD700",
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -237,13 +240,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginTop: 28,
+    gap: 3,
   },
   footerText: {
-    color: "#e8eaed",
+    color: "#f75858ff",
     fontSize: 15,
     display: "flex",
     alignItems: "center",
     // gapHorizontal: 4,
+  },
+
+  settingText: {
+    marginLeft: 50,
   },
   footerDivider: {
     width: 1,

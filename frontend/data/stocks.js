@@ -66,12 +66,7 @@ import { stocksData } from "./stocksData.js";
 // mock implementation for now
 let cachedStocks = null;
 
-export async function fetchStocks({
-  topTab = "Favorites",
-  subTab = "Spot",
-  q = "",
-  token,
-}) {
+export async function fetchStocks({ topTab = "Favorites", q = "", token }) {
   // Load real backend data if not loaded yet
   if (!cachedStocks) {
     const res = await fetch(`${API_URL}/api/stocks?exchange=US`, {

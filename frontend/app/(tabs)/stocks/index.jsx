@@ -5,14 +5,13 @@ import SegmentTabs from "../../../components/SegmentTabs";
 import StockRow from "../../../components/StockRow";
 import { fetchStocks } from "../../../data/stocks";
 import { useAuth } from "../../../context/AuthContext";
+import SkeletonLoader from "../../../components/SkeletonLoader";
 
-const TOP_TABS = ["Favorites", "Hot", "Pre-Market", "New", "Gainers"];
+const TOP_TABS = ["All", "Hot", "Gainers", "Losers"];
 // Bybit shows: Spot / Derivatives / TradFi. For stocks we map close to that:
-const SUB_TABS = ["Spot", "ETFs", "Indices", "TradFi"];
 
 export default function StocksScreen() {
   const [topTab, setTopTab] = useState("Favorites");
-  const [subTab, setSubTab] = useState("Spot");
   const [q, setQ] = useState("");
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -21,19 +20,19 @@ export default function StocksScreen() {
 
   async function load() {
     setLoading(true);
-    const data = await fetchStocks({ topTab, subTab, q });
+    const data = await fetchStocks({ topTab, q, token });
     setRows(data);
     setLoading(false);
   }
 
-  useEffect(() => {
-    fetchStocks({ topTab, subTab, q, token });
-    console.log(token);
-  }, [topTab, subTab, q, token]);
+  // useEffect(() => {
+  //   fetchStocks({ topTab, subTab, q, token });
+  //   console.log(token);
+  // }, [topTab, subTab, q, token]);
 
   useEffect(() => {
     load();
-  }, [topTab, subTab, q]);
+  }, [topTab, q, token]);
 
   return (
     <View style={styles.screen}>
@@ -70,7 +69,7 @@ export default function StocksScreen() {
         contentContainerStyle={{ paddingVertical: 4 }}
       >
         {loading ? (
-          <Text style={styles.loading}>Loading…</Text>
+          <SkeletonLoader />
         ) : (
           rows
             .filter(

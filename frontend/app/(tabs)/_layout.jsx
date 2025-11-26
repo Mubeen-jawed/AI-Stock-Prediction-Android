@@ -1,20 +1,27 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { View } from "react-native";
 
 export default function TabsLayout() {
   return (
     <Tabs
+      sceneContainerStyle={{ backgroundColor: "#05060A" }}
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
           backgroundColor: "#0D0D0D",
           borderTopColor: "#1A1A1A",
-          height: 70,
-          marginBottom: 25,
+          height: 100,
+          paddingBottom: 16,
         },
         tabBarActiveTintColor: "#FFD700",
         tabBarInactiveTintColor: "#888",
+
+        tabBarBackground: () => (
+          <View style={{ flex: 1, backgroundColor: "#05060A" }} />
+        ),
       }}
+      safeAreaInsets={{ bottom: 0 }}
     >
       <Tabs.Screen
         name="home"
@@ -63,6 +70,13 @@ export default function TabsLayout() {
           tabBarIcon: ({ color }) => (
             <Ionicons name="person-outline" size={22} color={color} />
           ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="notification"
+        options={{
+          href: null, // hidden
         }}
       />
 

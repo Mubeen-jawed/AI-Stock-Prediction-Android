@@ -78,7 +78,7 @@ export default function AddStockScreen() {
       currentPrice: selected.currentPrice,
     };
 
-    console.log("token:", token);
+    // console.log("token:", token);
 
     try {
       const res = await createPosition(payload, token);

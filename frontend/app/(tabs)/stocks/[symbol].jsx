@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useAuth } from "../../../context/AuthContext";
 import { API_URL } from "../../../config/config";
+import Loader from "../../../components/Loader";
 
 const TIME_RANGES = ["1D", "5D", "1M", "6M", "1Y", "ALL"];
 
@@ -68,12 +69,10 @@ export default function StockDetailScreen({ navigation }) {
   if (loading || !stock) {
     return (
       <SafeAreaView style={styles.safe}>
-        <Text>Loading...</Text>
+        <Loader />
       </SafeAreaView>
     );
   }
-
-  console.log("object");
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -89,7 +88,7 @@ export default function StockDetailScreen({ navigation }) {
 
           <View style={styles.titleWrap}>
             <Text style={styles.symbol}>{stock.symbol}</Text>
-            <Text style={styles.subSymbol}>NASDAQ · USD</Text>
+            {/* <Text style={styles.subSymbol}>NASDAQ · USD</Text> */}
           </View>
 
           <View style={styles.headerRight}>
@@ -99,7 +98,7 @@ export default function StockDetailScreen({ navigation }) {
               color="#747474"
               style={{ marginRight: 18 }}
             />
-            <Ionicons name="share-social-outline" size={20} color="#747474" />
+            {/* <Ionicons name="share-social-outline" size={20} color="#747474" /> */}
           </View>
         </View>
 
@@ -109,23 +108,29 @@ export default function StockDetailScreen({ navigation }) {
         >
           {/* Price Area */}
           <View style={styles.priceArea}>
-            <Text style={styles.price}>${stock.currentPrice.toFixed(2)}</Text>
+            <Text style={styles.price}>${stock.currentPrice?.toFixed(2)}</Text>
 
-            <View style={styles.changeContainer}>
+            <View
+              style={[
+                styles.pill,
+                { backgroundColor: positive ? "#163D2B" : "#3D1B1B" },
+              ]}
+            >
               <Text
-                style={[
-                  styles.changePill,
-                  positive ? styles.greenBg : styles.redBg,
-                ]}
+                style={{
+                  color: positive ? "#16C784" : "#EA3943",
+                  fontWeight: "700",
+                  fontSize: 15,
+                }}
               >
                 {positive ? "+" : ""}
-                {stock.percentChange.toFixed(2)}%
+                {stock.percentChange?.toFixed(2)}%
               </Text>
 
-              <Text style={styles.changeText}>
+              {/* <Text style={styles.changeText}>
                 {positive ? "+" : ""}
-                {stock.change.toFixed(2)}
-              </Text>
+                {stock.change?.toFixed(2)}
+              </Text> */}
             </View>
           </View>
 
@@ -199,7 +204,7 @@ export default function StockDetailScreen({ navigation }) {
                   ]}
                 >
                   {positive ? "+" : ""}
-                  {stock.percentChange.toFixed(2)}%
+                  {stock.percentChange?.toFixed(2)}%
                 </Text>
               </View>
             </View>
@@ -225,6 +230,11 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: "#070707",
+    height: "100vh",
+    width: "100%",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
   },
   container: {
     flex: 1,
@@ -278,16 +288,12 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: "700",
   },
-  changeContainer: {
-    alignItems: "flex-end",
-  },
-  changePill: {
-    paddingHorizontal: 12,
+  pill: {
+    marginTop: 4,
+    borderRadius: 16,
     paddingVertical: 4,
-    borderRadius: 10,
-    color: "#fff",
-    fontSize: 13,
-    fontWeight: "600",
+    paddingHorizontal: 10,
+    fontSize: 12,
   },
   greenBg: { backgroundColor: "#0DBA7D" },
   redBg: { backgroundColor: "#D9435E" },
