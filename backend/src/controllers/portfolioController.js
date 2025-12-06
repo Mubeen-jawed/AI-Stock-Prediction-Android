@@ -4,7 +4,7 @@ const { getLivePrice } = import("../services/stockService.js");
 // Create new portfolio
 const createPortfolio = async (req, res) => {
   try {
-    const { stocks } = req.body;
+    const { stocks } = req.body; // stocks = [payload] from frontend
 
     if (!stocks || stocks.length === 0) {
       return res
@@ -12,17 +12,40 @@ const createPortfolio = async (req, res) => {
         .json({ message: "Please provide at least one stock" });
     }
 
-    // If portfolio exists → push new stocks
-    // If not → create a new one (upsert)
-    const portfolio = await Portfolio.findOneAndUpdate(
-      { user: req.user._id },
-      { $push: { stocks: { $each: stocks } } },
-      { new: true, upsert: true }
-    );
+    let portfolio = await Portfolio.findOne({ user: req.user._id });
+
+    // If no portfolio exists, create one
+    if (!portfolio) {
+      portfolio = new Portfolio({
+        user: req.user._id,
+        stocks: [],
+      });
+    }
+
+    stocks.forEach((incoming) => {
+      const existing = portfolio.stocks.find(
+        (s) => s.symbol === incoming.symbol
+      );
+
+      if (existing) {
+        // merge here
+        existing.quantity += incoming.quantity;
+
+        // optionally update other fields
+        existing.buyPrice = incoming.buyPrice;
+        existing.currentPrice = incoming.currentPrice;
+        existing.logo = incoming.logo;
+        existing.companyName = incoming.companyName;
+      } else {
+        portfolio.stocks.push(incoming);
+      }
+    });
+
+    await portfolio.save();
 
     res
       .status(201)
-      .json({ message: "Portfolio created/updated successfully", portfolio });
+      .json({ message: "Portfolio created or updated", portfolio });
   } catch (error) {
     console.error("Create portfolio error:", error);
     res.status(500).json({ message: error.message });

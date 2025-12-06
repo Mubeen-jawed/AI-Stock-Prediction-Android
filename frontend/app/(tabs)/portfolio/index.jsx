@@ -10,9 +10,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { PieChart } from "react-native-gifted-charts";
+// import { LinearGradient } from "expo-linear-gradient";
 
 import PortfolioSummaryCard from "../../../components/PortfolioSummaryCard";
 import PositionRow from "../../../components/PositionRow";
+import SkeletonLoader from "../../../components/SkeletonLoader";
 import { fetchPortfolio } from "../../../data/portfolio";
 import { useAuth } from "../../../context/AuthContext";
 
@@ -27,17 +30,39 @@ export default function PortfolioScreen() {
       setLoading(true);
       const data = await fetchPortfolio(token);
       setPortfolio(data);
+      console.log(portfolio);
     } finally {
       setLoading(false);
     }
   }
 
-  // 🔥 Runs every time the screen comes into focus
   useFocusEffect(
     useCallback(() => {
       load();
     }, [token])
   );
+
+  function getColorFromSymbol(symbol) {
+    let hash = 0;
+
+    for (let i = 0; i < symbol.length; i++) {
+      hash = symbol.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    let color = "#";
+    for (let i = 0; i < 3; i++) {
+      const value = (hash >> (i * 8)) & 0xff;
+      color += ("00" + value.toString(16)).slice(-2);
+    }
+
+    return color;
+  }
+
+  const pieData = (portfolio?.distribution ?? []).map((d) => ({
+    value: d.value,
+    color: getColorFromSymbol(d.symbol),
+    text: d.symbol,
+  }));
 
   return (
     <View style={styles.screen}>
@@ -46,7 +71,7 @@ export default function PortfolioScreen() {
         <Text style={styles.title}>Portfolio</Text>
 
         {loading || !portfolio ? (
-          <Text style={styles.loading}>Loading portfolio…</Text>
+          <SkeletonLoader />
         ) : (
           <>
             {/* Summary card */}
@@ -57,14 +82,26 @@ export default function PortfolioScreen() {
               <Text style={styles.cardTitle}>Asset Allocation</Text>
               <Text style={styles.cardSub}>Distribution by current value</Text>
               <View style={styles.pieWrap}>
-                <View style={styles.pieCircle} />
+                <PieChart
+                  data={pieData}
+                  radius={60}
+                  innerRadius={40}
+                  donut
+                  showText={false}
+                />
+
                 <View style={{ marginLeft: 16, flex: 1 }}>
                   {portfolio.distribution.map((d) => (
                     <View
                       key={d.symbol}
                       style={{ flexDirection: "row", marginBottom: 6 }}
                     >
-                      <View style={styles.legendDot} />
+                      <View
+                        style={[
+                          styles.legendDot,
+                          { backgroundColor: getColorFromSymbol(d.symbol) },
+                        ]}
+                      />
                       <Text style={styles.legendText}>
                         {d.symbol} • ${d.value.toFixed(2)}
                       </Text>

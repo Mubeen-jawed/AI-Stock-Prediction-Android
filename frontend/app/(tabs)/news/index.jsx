@@ -11,6 +11,7 @@ import {
 import NewsCard from "../../../components/NewsCard";
 import { fetchNews } from "../../../data/news";
 import { useAuth } from "../../../context/AuthContext";
+import SkeletonLoader from "../../../components/SkeletonLoader";
 
 const TABS = ["Latest Events"];
 
@@ -66,7 +67,7 @@ export default function NewsScreen() {
         contentContainerStyle={{ paddingBottom: 80 }}
       >
         {loading ? (
-          <Text style={styles.loading}>Loading…</Text>
+          <SkeletonLoader />
         ) : (
           items?.map((item) => <NewsCard key={item.id} item={item} />)
         )}

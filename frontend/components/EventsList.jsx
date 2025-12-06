@@ -1,20 +1,29 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
 
 export default function EventsList({ items }) {
   const router = useRouter();
+
   return (
     <View style={styles.card}>
       <View style={{ flexDirection: "row" }}>
         <Text style={styles.title}>Latest Events</Text>
         <Text style={styles.muted}> News</Text>
       </View>
-      {items.map((e) => (
-        <View key={e.title} style={{ marginTop: 12 }}>
-          <Text style={styles.item}>{e.title}</Text>
+      {items.slice(0, 3).map((e) => (
+        <TouchableOpacity
+          onPress={() => router.push(`/news/${e.id}`)}
+          key={e.title}
+          style={{ marginTop: 12 }}
+        >
+          <Text style={styles.item}>
+            {e.title.length > 30 ? e.title.slice(0, 100) + "..." : e.title}
+          </Text>
+
           <Text style={styles.date}>{e.date}</Text>
-        </View>
+        </TouchableOpacity>
       ))}
       <Text onPress={() => router.push("/news")} style={styles.more}>
         More <Ionicons name="chevron-forward" size={12} color="#e8eaed" />

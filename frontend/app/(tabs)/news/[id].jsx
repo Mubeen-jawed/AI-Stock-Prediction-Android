@@ -12,6 +12,8 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import { fetchNewsDetails } from "../../../data/newsPage";
+import Loader from "../../../components/Loader";
+
 const { useAuth } = require("../../../context/AuthContext");
 
 export default function NewsDetailScreen() {
@@ -20,85 +22,99 @@ export default function NewsDetailScreen() {
   const { id } = useLocalSearchParams();
 
   const [newsData, setNewsData] = useState([]);
-
-  // console.log(id);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchNewsDetails(token, id).then((data) => {
       setNewsData(data);
+      setLoading(false);
     });
   }, [id]);
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={20} color="#FFFFFF" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          Market News
-        </Text>
-        <View style={{ width: 32 }} />
-      </View>
-
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Image / logo */}
-        <View style={styles.imageWrapper}>
-          {newsData.image ? (
-            <Image source={{ uri: newsData.image }} style={styles.image} />
-          ) : (
-            <View style={styles.imagePlaceholder}>
-              <Ionicons name="newspaper-outline" size={28} color="#626785" />
-            </View>
-          )}
+    <>
+      {loading ? (
+        <View style={styles.safe}>
+          <Loader />
         </View>
-
-        {/* Meta */}
-        <View style={styles.metaRow}>
-          <Text style={styles.source}>{newsData.source}</Text>
-          {newsData.datetime ? (
-            <>
-              <Text style={styles.dot}>•</Text>
-              <Text style={styles.date}>{newsData.datetime}</Text>
-            </>
-          ) : null}
-        </View>
-
-        {/* Category chip */}
-        {newsData.category ? (
-          <View style={styles.categoryChip}>
-            <Text style={styles.categoryText}>{newsData.category}</Text>
+      ) : (
+        <View style={styles.container}>
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={styles.backBtn}
+            >
+              <Ionicons name="chevron-back" size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle} numberOfLines={1}>
+              Market News
+            </Text>
+            <View style={{ width: 32 }} />
           </View>
-        ) : null}
 
-        {/* Title */}
-        <Text style={styles.title}>{newsData.title}</Text>
-
-        {/* Body */}
-        <Text style={styles.body}>{newsData.text}</Text>
-
-        {/* Open full article */}
-        {newsData.url ? (
-          <TouchableOpacity
-            style={styles.cta}
-            onPress={() => Linking.openURL(String(newsData.url))}
-            activeOpacity={0.9}
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
           >
-            <Text style={styles.ctaText}>Open full article</Text>
-            <Ionicons name="arrow-forward" size={18} color="#05060A" />
-          </TouchableOpacity>
-        ) : null}
-      </ScrollView>
-    </View>
+            {/* Image / logo */}
+            <View style={styles.imageWrapper}>
+              <Image source={{ uri: newsData.image }} style={styles.image} />
+            </View>
+
+            {/* Meta */}
+            <View style={styles.metaRow}>
+              <Text style={styles.source}>{newsData.source}</Text>
+              {newsData.datetime ? (
+                <>
+                  <Text style={styles.dot}>•</Text>
+                  <Text style={styles.date}>{newsData.datetime}</Text>
+                </>
+              ) : null}
+            </View>
+
+            {/* Category chip */}
+            {newsData.category ? (
+              <View style={styles.categoryChip}>
+                <Text style={styles.categoryText}>{newsData.category}</Text>
+              </View>
+            ) : null}
+
+            {/* Title */}
+            <Text style={styles.title}>{newsData.title}</Text>
+
+            {/* Body */}
+            <Text style={styles.body}>{newsData.text}</Text>
+
+            {/* Open full article */}
+            {newsData.url ? (
+              <TouchableOpacity
+                style={styles.cta}
+                onPress={() => Linking.openURL(String(newsData.url))}
+                activeOpacity={0.9}
+              >
+                <Text style={styles.ctaText}>Open full article</Text>
+                <Ionicons name="arrow-forward" size={18} color="#05060A" />
+              </TouchableOpacity>
+            ) : null}
+          </ScrollView>
+        </View>
+      )}
+    </>
   );
 }
 
 const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: "#070707",
+    height: "100vh",
+    width: "100%",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   container: {
     flex: 1,
     backgroundColor: "#05060A", // Bybit-style dark
@@ -206,7 +222,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 999,
-    backgroundColor: "#FFD15C",
+    backgroundColor: "#FFD700",
     paddingVertical: 10,
     marginTop: 4,
   },

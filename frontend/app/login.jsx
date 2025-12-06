@@ -43,7 +43,7 @@ export default function Login() {
       // Go to main app (e.g. tabs)
       router.replace("/home");
     } catch (err) {
-      console.log("Login error:", err.message);
+      console.log("Login error:", err);
     }
   };
 
