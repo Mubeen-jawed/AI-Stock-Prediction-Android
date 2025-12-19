@@ -9,7 +9,7 @@ app.use(
   })
 );
 
-const DEFAULT_PORT = 4000;
+const DEFAULT_PORT = 4001;
 
 async function startServer(port) {
   try {
@@ -34,4 +34,4 @@ async function startServer(port) {
   }
 }
 
-startServer(DEFAULT_PORT);
+startServer(process.env.port || DEFAULT_PORT);

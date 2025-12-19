@@ -5,6 +5,6 @@ const {
 
 const router = express.Router();
 
-router.post("/", predictPriceController);
+router.post("/:ticker", predictPriceController);
 
 module.exports = router;

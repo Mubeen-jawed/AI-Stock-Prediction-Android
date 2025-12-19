@@ -11,54 +11,68 @@
 //   }
 // };
 // routes/predictRoute.js
-const { fetchStockData } = require("../services/stockService");
 const { spawn } = require("child_process");
 const path = require("path");
 
 const predictPriceController = async (req, res) => {
-  try {
-    const ticker = req.params.ticker;
-    const features = await fetchStockData(ticker);
+  const { ticker } = req.params;
+  const days = req.query.days || "7";
+  const modelType = req.query.modelType || "lstm"; // lstm / prophet / news-lstm
 
-    // Path to Python inside venv
-    const python = path.join(
-      __dirname,
-      "..",
-      "..",
-      "ai-models",
-      "price-prediction",
-      "venv",
-      "Scripts",
-      "python.exe"
-    );
+  const pythonScript = {
+    lstm: "predict_price.py",
+    prophet: "predict_prophet.py",
+    "news-lstm": "predict_news_lstm.py",
+  }[modelType];
 
-    // Path to Python script
-    const pythonScript = path.join(
-      __dirname,
-      "..",
-      "..",
-      "ai-models",
-      "price-prediction",
-      "predict_price.py"
-    );
+  const python = path.join(
+    __dirname,
+    "..",
+    "..",
+    "ai-models",
+    "price-prediction",
+    "venv",
+    "Scripts",
+    "python.exe"
+  );
+  console.log(pythonScript);
+  // Path to Python script
+  const scriptPath = path.join(
+    __dirname,
+    "..",
+    "..",
+    "ai-models",
+    "price-prediction",
+    `${pythonScript}`
+  );
+  console.log(scriptPath, "scriptPath");
+  const pyProcess = spawn(python, [scriptPath, ticker, days]);
 
-    const pyProcess = spawn(python, [pythonScript]);
+  let pythonOutput = "";
+  pyProcess.stdout.on("data", (data) => (pythonOutput += data.toString()));
+  pyProcess.stderr.on("data", (data) =>
+    console.error("Python error:", data.toString())
+  );
 
-    let pythonOutput = "";
-    pyProcess.stdout.on("data", (data) => {
-      pythonOutput += data.toString();
-    });
+  pyProcess.on("close", () => {
+    try {
+      if (pythonScript === "predict_price.py") {
+        const lines = pythonOutput.trim().split("\n");
+        const predictions = lines
+          .filter((line) => line.startsWith("Day")) // only Day lines
+          .map((line) => parseFloat(line.split(":")[1]));
 
-    pyProcess.stderr.on("data", (data) => {
-      console.error("Python error:", data.toString());
-    });
-
-    pyProcess.on("close", () => {
-      res.json({ prediction: pythonOutput.trim() });
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.toString() });
-  }
+        res.json({ ticker, days: parseInt(days), prediction: predictions });
+      } else if (pythonScript === "predict_prophet.py") {
+        const parsed = JSON.parse(pythonOutput);
+        res.json(parsed);
+      }
+    } catch (err) {
+      res
+        .status(500)
+        .json({ error: "Invalid Python output", raw: pythonOutput });
+    }
+  });
 };
 
 module.exports = { predictPriceController };
