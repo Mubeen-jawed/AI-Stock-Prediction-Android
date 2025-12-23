@@ -5,7 +5,9 @@ const cors = require("cors");
 
 app.use(
   cors({
-    origin: "*", // or "http://localhost:19006" for Expo web
+    origin: "*", // or "http://localhost:8081"
+    methods: "GET,POST,PUT,DELETE",
+    allowedHeaders: "Content-Type, Authorization",
   })
 );
 

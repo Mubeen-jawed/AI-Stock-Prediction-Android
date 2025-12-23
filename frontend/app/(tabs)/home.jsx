@@ -84,7 +84,7 @@ export default function Home() {
 
   return (
     <>
-      {authenticated && (
+      {authenticated && !newsLoading && !profileLoading ? (
         <View style={styles.screen}>
           <StatusBar style="light" />
           <ScrollView contentContainerStyle={{ paddingBottom: 28 }}>
@@ -144,12 +144,25 @@ export default function Home() {
             )}
           </ScrollView>
         </View>
+      ) : (
+        <View style={styles.safe}>
+          <Loader />
+        </View>
       )}
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: "#070707",
+    height: "100vh",
+    width: "100%",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   screen: { flex: 1, backgroundColor: "#0D0D0D", paddingTop: 40 },
   banner: {
     backgroundColor: "#141414",
