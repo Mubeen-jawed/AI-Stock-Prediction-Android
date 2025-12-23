@@ -2,8 +2,6 @@ def predict_multi(symbol, days=7):
     import numpy as np
     import pandas as pd
     import os
-    import json
-    from datetime import timedelta
     from tensorflow.keras.models import load_model
     from sklearn.preprocessing import MinMaxScaler
 
@@ -31,17 +29,27 @@ def predict_multi(symbol, days=7):
     input_seq = np.expand_dims(last_60, axis=0)  # shape (1, 60, 1)
 
     model = load_model(model_file)
+    last_date = pd.to_datetime(df.index[-1])
+
+    future_dates = pd.date_range(
+        start=last_date + pd.Timedelta(days=1),
+        periods=15,
+        freq="D"
+    )
+
     predictions = []
 
-    for _ in range(days):
+    for i in range(15):
         pred_scaled = model.predict(input_seq, verbose=0)
         pred_price = scaler.inverse_transform(pred_scaled)[0][0]
-
-        predictions.append({ "price": float(pred_price)})
-
-        # Update input_seq with the new prediction
-        # input_seq = np.append(input_seq[:, 1:, :], [[pred_scaled]], axis=1)
-
+        predictions.append({
+            "date": future_dates[i].strftime("%Y-%m-%d"),
+            "price": float(pred_price)
+        })
+        input_seq = np.concatenate(
+        (input_seq[:, 1:, :], pred_scaled.reshape(1, 1, 1)),
+        axis=1
+        )
     return predictions
 
 

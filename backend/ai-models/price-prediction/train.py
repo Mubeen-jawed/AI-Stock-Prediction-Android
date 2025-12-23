@@ -47,5 +47,6 @@ def train(symbol):
     print(f"{symbol} model trained and saved.")
 
 if __name__ == "__main__":
+    print("Starting training...",sys.argv)
     symbol = sys.argv[1]
     train(symbol)

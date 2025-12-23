@@ -1,5 +1,6 @@
 import sys
 from predict import predict_multi
+import json
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
@@ -10,5 +11,4 @@ if __name__ == "__main__":
     days = int(sys.argv[2]) if len(sys.argv) > 2 else 7
 
     predictions = predict_multi(symbol, days)
-    for p in predictions:
-        print(f"{p['price']:.2f}")
+    print(json.dumps(predictions))

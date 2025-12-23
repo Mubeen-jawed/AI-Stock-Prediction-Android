@@ -57,12 +57,14 @@ const predictPriceController = async (req, res) => {
   pyProcess.on("close", () => {
     try {
       if (pythonScript === "predict_price.py") {
-        const lines = pythonOutput.trim().split("\n");
-        const predictions = lines
-          .filter((line) => line.startsWith("Day")) // only Day lines
-          .map((line) => parseFloat(line.split(":")[1]));
+        const raw = pythonOutput.trim();
 
-        res.json({ ticker, days: parseInt(days), prediction: predictions });
+        // If wrapped in array like ['json-string']
+        const firstParse = JSON.parse(raw);
+        const parsed =
+          typeof firstParse === "string" ? JSON.parse(firstParse) : firstParse;
+
+        res.json(parsed);
       } else if (pythonScript === "predict_prophet.py") {
         const parsed = JSON.parse(pythonOutput);
         res.json(parsed);
