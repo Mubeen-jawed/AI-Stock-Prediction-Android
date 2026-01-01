@@ -100,6 +100,8 @@ export default function AddStockScreen() {
     }
   }
 
+  console.log(selected);
+
   return (
     <View style={styles.screen}>
       <StatusBar style="light" />
@@ -228,6 +230,15 @@ export default function AddStockScreen() {
                   style={[styles.fieldInput, { textAlign: "left" }]}
                 />
               </View>
+              <View>
+                {allStocks?.map((s) => {
+                  s.symbol === selected?.symbol && (
+                    <Text style={styles.fieldPrefix}>
+                      Current Price: ${s.currentPrice}
+                    </Text>
+                  );
+                })}
+              </View>
             </View>
 
             {/* Total */}
@@ -241,14 +252,6 @@ export default function AddStockScreen() {
           </View>
 
           {/* Info note */}
-          <View
-            style={[styles.card, { borderWidth: 1, borderColor: "#303030" }]}
-          >
-            <Text style={styles.infoText}>
-              This will create a new position in your portfolio. Later, this
-              form will send data to your backend via a POST request.
-            </Text>
-          </View>
         </ScrollView>
 
         {/* Fixed confirm button */}

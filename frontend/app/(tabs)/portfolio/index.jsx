@@ -121,8 +121,7 @@ export default function PortfolioScreen() {
               </Text>
               <View style={styles.chartBox} />
               <Text style={styles.hint}>
-                Replace this box with a real line chart (e.g. Reanimated /
-                Victory) when backend data is wired.
+                Will Add AI Predictions based on user Portfolio
               </Text>
             </View>
 

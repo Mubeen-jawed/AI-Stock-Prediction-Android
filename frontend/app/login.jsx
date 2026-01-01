@@ -23,6 +23,7 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState(false);
 
   const handleLogin = async () => {
     try {
@@ -34,6 +35,7 @@ export default function Login() {
 
       const data = await res.json();
       if (!res.ok) {
+        setError(true);
         throw new Error(data.message || "Login failed");
       }
 
@@ -43,6 +45,8 @@ export default function Login() {
       // Go to main app (e.g. tabs)
       router.replace("/home");
     } catch (err) {
+      setError(true);
+
       console.log("Login error:", err);
     }
   };
@@ -112,12 +116,18 @@ export default function Login() {
           </View>
 
           {/* Forgot Password */}
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={styles.forgotPassword}
             onPress={() => router.push("/forgot-password")}
           >
             <Text style={styles.forgotPasswordText}>Forgot Password</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
+
+          <View>
+            <Text style={{ color: "red", margin: "10px 0" }}>
+              {error ? "Invalid email or password" : ""}
+            </Text>
+          </View>
 
           {/* Login Button */}
           <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>

@@ -51,7 +51,7 @@ export default function StocksScreen() {
       </View>
 
       {/* Top tabs (Favorites | Hot | …) */}
-      <SegmentTabs tabs={TOP_TABS} active={topTab} onChange={setTopTab} />
+      {/* <SegmentTabs tabs={TOP_TABS} active={topTab} onChange={setTopTab} /> */}
 
       {/* Sub tabs row (Spot | ETFs | Indices | TradFi) */}
 

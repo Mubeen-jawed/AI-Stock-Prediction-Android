@@ -2,10 +2,32 @@ const {
   getAllSharesList,
   getLivePrice,
   getCompanyProfile,
+  getCandlesTwelveData,
 } = require("../services/stockService.js");
+
+const getStockCandles = async (req, res) => {
+  const { symbol } = req.params;
+  const { range } = req.query; // "1D" | "5D" | "1M" | "6M" | "1Y"
+
+  if (!symbol)
+    return res.status(400).json({ message: "Stock symbol is required" });
+
+  try {
+    const data = await getCandlesTwelveData(
+      symbol.toUpperCase(),
+      range || "1M"
+    );
+    return res.json(data);
+  } catch (err) {
+    // 429 = rate limit (common on free plan), but Twelve Data may send 400/401-style too
+    return res.status(500).json({ message: err.message });
+  }
+};
 
 const getStockPrice = async (req, res) => {
   const { symbol } = req.params;
+
+  console.log(symbol);
 
   if (!symbol) {
     return res.status(400).json({ message: "Stock symbol is required" });
@@ -90,4 +112,4 @@ const getStocksList = async (req, res) => {
   }
 };
 
-module.exports = { getStockPrice, getStocksList };
+module.exports = { getStockPrice, getStocksList, getStockCandles };

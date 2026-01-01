@@ -97,9 +97,97 @@ const getCompanyProfile = async (symbol) => {
   }
 };
 
+const TD_BASE = process.env.TWELVE_DATA_BASE || "https://api.twelvedata.com";
+const TD_KEY = process.env.TWELVE_DATA_API_KEY;
+
+// Map your app filters -> interval + number of candles (outputsize)
+// You can tweak these to match your UI density
+const RANGE_PRESETS = {
+  "1D": { interval: "5min", outputsize: 78 }, // ~1 day intraday candles
+  "5D": { interval: "15min", outputsize: 130 }, // ~5 days
+  "1M": { interval: "1h", outputsize: 120 }, // ~1 month
+  "6M": { interval: "1day", outputsize: 160 }, // ~6 months
+  "1Y": { interval: "1day", outputsize: 240 }, // ~1 year trading days
+};
+
+function normalizeTwelveDataError(data) {
+  // Twelve Data often returns { status: "error", message, code }
+  if (data && data.status === "error") {
+    const msg = data.message || "Twelve Data error";
+    const code = data.code || "TD_ERROR";
+    return new Error(`${msg} (${code})`);
+  }
+  return null;
+}
+
+const getCandlesTwelveData = async (symbol, range = "1M") => {
+  if (!TD_KEY) throw new Error("TWELVE_DATA_API_KEY is missing");
+
+  const preset = RANGE_PRESETS[range] || RANGE_PRESETS["1M"];
+  const interval = preset.interval;
+  const outputsize = preset.outputsize;
+
+  try {
+    const res = await axios.get(`${TD_BASE}/time_series`, {
+      params: {
+        symbol,
+        interval,
+        outputsize,
+        apikey: TD_KEY,
+        format: "JSON",
+        // Optional but recommended:
+        // timezone: "UTC",
+        // order: "ASC"  // if supported; we'll sort anyway
+      },
+      timeout: 15000,
+    });
+
+    const tdErr = normalizeTwelveDataError(res.data);
+    if (tdErr) throw tdErr;
+
+    const values = res.data?.values;
+    if (!Array.isArray(values) || values.length === 0) {
+      throw new Error("No candle data returned");
+    }
+
+    // Twelve Data returns values in descending time order (commonly).
+    // We'll normalize to ascending for charting.
+    const candles = values
+      .map((v) => ({
+        timestamp: v.datetime, // string like "2025-12-24 10:00:00"
+        open: Number(v.open),
+        high: Number(v.high),
+        low: Number(v.low),
+        close: Number(v.close),
+        volume: v.volume != null ? Number(v.volume) : null,
+      }))
+      .filter(
+        (c) =>
+          Number.isFinite(c.open) &&
+          Number.isFinite(c.high) &&
+          Number.isFinite(c.low) &&
+          Number.isFinite(c.close)
+      )
+      .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+    return {
+      symbol,
+      range,
+      interval,
+      candles,
+    };
+  } catch (err) {
+    // axios network error
+    const msg =
+      err?.response?.data?.message || err.message || "Unable to fetch candles";
+    throw new Error(msg);
+  }
+};
+
 module.exports = {
   getLivePrice,
   getAllSharesList,
   fetchStockData,
   getCompanyProfile,
+  getCandlesTwelveData,
 };
