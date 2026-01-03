@@ -12,6 +12,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useAuth } from "../../../context/AuthContext";
 import { API_URL } from "../../../config/config";
 import Loader from "../../../components/Loader";
+import StockCandleChart from "../../../components/StockCandleChart";
 
 const TIME_RANGES = ["1D", "5D", "1M", "6M", "1Y", "ALL"];
 
@@ -24,6 +25,35 @@ export default function StockDetailScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selectedRange, setSelectedRange] = useState("1D");
+
+  const [chart, setChart] = useState(null);
+  const [chartLoading, setChartLoading] = useState(false);
+
+  useEffect(() => {
+    if (!symbol || !token) return;
+
+    const fetchChart = async () => {
+      try {
+        setChartLoading(true);
+
+        const res = await fetch(
+          `${API_URL}/api/stocks/chart/${symbol}?range=${selectedRange}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        const data = await res.json();
+        setChart(data);
+      } catch (e) {
+        console.log("Chart error:", e);
+      } finally {
+        setChartLoading(false);
+      }
+    };
+
+    fetchChart();
+  }, [symbol, token, selectedRange]);
 
   useEffect(() => {
     if (!symbol || !token) return;
@@ -52,7 +82,7 @@ export default function StockDetailScreen({ navigation }) {
         // Expecting shape:
         // { symbol, currentPrice, open, high, low, prevClose, change, percentChange }
         setStock(data);
-        console.log(stock.symbol);
+        // console.log(stock.symbol);
       } catch (err) {
         console.log("Stock fetch error:", err);
         setError("Failed to load stock data.");
@@ -156,9 +186,19 @@ export default function StockDetailScreen({ navigation }) {
           </View>
 
           {/* Chart Placeholder */}
-          <View style={styles.chartBox}>
-            <Text style={styles.chartPlaceholder}>Chart Coming Soon</Text>
-          </View>
+          {/* <View style={styles.tabs}>
+            {ranges.map((r) => (
+              <Text
+                key={r}
+                onPress={() => setRange(r)}
+                style={[styles.tabText, isActive && styles.tabActiveText]}
+              >
+                {r}
+              </Text>
+            ))}
+          </View> */}
+
+          <StockCandleChart chart={chart} loading={chartLoading} />
 
           {/* Stats Section */}
           <View style={styles.card}>

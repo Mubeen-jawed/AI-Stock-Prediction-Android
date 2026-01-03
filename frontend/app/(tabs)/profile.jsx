@@ -9,7 +9,6 @@ import {
   View,
   TouchableOpacity,
 } from "react-native";
-import { fetchProfile } from "../../data/profile";
 import { API_URL } from "../../config/config";
 import { useAuth } from "../../context/AuthContext";
 import { router } from "expo-router";

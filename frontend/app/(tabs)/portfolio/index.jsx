@@ -30,11 +30,11 @@ export default function PortfolioScreen() {
       setLoading(true);
       const data = await fetchPortfolio(token);
       setPortfolio(data);
-      console.log(portfolio);
     } finally {
       setLoading(false);
     }
   }
+  // console.log(portfolio.distribution.length);
 
   useFocusEffect(
     useCallback(() => {
@@ -82,13 +82,15 @@ export default function PortfolioScreen() {
               <Text style={styles.cardTitle}>Asset Allocation</Text>
               <Text style={styles.cardSub}>Distribution by current value</Text>
               <View style={styles.pieWrap}>
-                <PieChart
-                  data={pieData}
-                  radius={60}
-                  innerRadius={40}
-                  donut
-                  showText={false}
-                />
+                {portfolio?.distribution?.length > 0 && (
+                  <PieChart
+                    data={pieData}
+                    radius={60}
+                    innerRadius={40}
+                    donut
+                    showText={false}
+                  />
+                )}
 
                 <View style={{ marginLeft: 16, flex: 1 }}>
                   {portfolio.distribution.map((d) => (
@@ -119,8 +121,7 @@ export default function PortfolioScreen() {
               </Text>
               <View style={styles.chartBox} />
               <Text style={styles.hint}>
-                Replace this box with a real line chart (e.g. Reanimated /
-                Victory) when backend data is wired.
+                Will Add AI Predictions based on user Portfolio
               </Text>
             </View>
 

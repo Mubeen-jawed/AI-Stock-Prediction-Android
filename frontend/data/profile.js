@@ -15,16 +15,25 @@ import { API_URL } from "../config/config";
 // };
 
 export async function fetchProfile(token, router) {
-  const res = await fetch(`${API_URL}/api/users/profile`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  try {
+    const res = await fetch(`${API_URL}/api/users/profile`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
-  if (res.status === 401) {
-    router.replace("/login");
-    return;
+    if (res.status === 401) {
+      router.replace("/login");
+      return;
+    }
+
+    // const text = await res.text();
+    // console.log("STATUS:", res.status);
+    // console.log("CONTENT-TYPE:", res.headers.get("content-type"));
+    // console.log("BODY (first 400 chars):", text.slice(0, 400));
+
+    return await res.json();
+  } catch (err) {
+    console.log("Network error:", err);
   }
-
-  return await res.json();
 }

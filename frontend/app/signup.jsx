@@ -37,11 +37,16 @@ export default function Signup() {
 
     const data = await res.json();
 
-    if (!res.ok) throw new Error(data.message || "Signup failed");
+    if (!res.ok) {
+      setError(true);
+      throw new Error(data.message || "Signup failed");
+    }
 
     // If backend also returns token & user:
-    await login(data.user, data.token);
-    router.replace("/home");
+    if (!error) {
+      await login(data.user, data.token);
+      router.replace("/home");
+    }
   };
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -119,6 +124,12 @@ export default function Signup() {
                 color="#666872"
               />
             </TouchableOpacity>
+          </View>
+
+          <View>
+            <Text style={{ color: "red", margin: "10px 0" }}>
+              {error ? "An Error Occurred, please try again" : ""}
+            </Text>
           </View>
 
           {/* Signup Button */}

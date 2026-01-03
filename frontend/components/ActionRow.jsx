@@ -9,8 +9,8 @@ const items = [
     label: "Add Stock",
     route: "/portfolio/add-stock",
   },
-  { icon: "gift-outline", label: "Watchlist", route: "/stockPage" },
-  { icon: "ellipsis-horizontal-circle-outline", label: "More", route: "/more" },
+  { icon: "gift-outline", label: "Watchlist", route: "/" },
+  { icon: "ellipsis-horizontal-circle-outline", label: "More", route: "/" },
 ];
 
 export default function ActionRow() {
