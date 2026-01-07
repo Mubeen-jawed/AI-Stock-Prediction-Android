@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
 import { AuthProvider, useAuth } from "../context/AuthContext";
+import { DataProvider } from "../context/DataContext";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as NavigationBar from "expo-navigation-bar";
 import { useEffect } from "react";
@@ -15,7 +16,9 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider style={{ flex: 1, backgroundColor: "#05060A" }}>
         <AuthProvider>
-          <AuthNav />
+          <DataProvider>
+            <AuthNav />
+          </DataProvider>
         </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

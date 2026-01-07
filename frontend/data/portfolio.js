@@ -2,7 +2,7 @@ import { API_URL } from "../config/config";
 
 export async function fetchPortfolio(token) {
   try {
-    const res = await fetch(`${API_URL}/portfolio`, {
+    const res = await fetch(`${API_URL}/api/portfolio`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,

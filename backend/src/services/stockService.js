@@ -103,11 +103,11 @@ const TD_KEY = process.env.TWELVE_DATA_API_KEY;
 // Map your app filters -> interval + number of candles (outputsize)
 // You can tweak these to match your UI density
 const RANGE_PRESETS = {
-  "1D": { interval: "5min", outputsize: 78 }, // ~1 day intraday candles
-  "5D": { interval: "15min", outputsize: 130 }, // ~5 days
-  "1M": { interval: "1h", outputsize: 120 }, // ~1 month
-  "6M": { interval: "1day", outputsize: 160 }, // ~6 months
-  "1Y": { interval: "1day", outputsize: 240 }, // ~1 year trading days
+  "1D": { interval: "15min", outputsize: 96 }, // 24h / 15m = 96
+  "5D": { interval: "1h", outputsize: 120 }, // 5d * 24 = 120
+  "1M": { interval: "4h", outputsize: 180 }, // enough detail, not dense
+  "6M": { interval: "1day", outputsize: 140 },
+  "1Y": { interval: "1day", outputsize: 220 },
 };
 
 function normalizeTwelveDataError(data) {

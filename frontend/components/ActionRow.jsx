@@ -9,7 +9,7 @@ const items = [
     label: "Add Stock",
     route: "/portfolio/add-stock",
   },
-  { icon: "gift-outline", label: "Watchlist", route: "/" },
+  { icon: "heart-outline", label: "Watchlist", route: "/watchlist" },
   { icon: "ellipsis-horizontal-circle-outline", label: "More", route: "/" },
 ];
 

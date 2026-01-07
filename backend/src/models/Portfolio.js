@@ -17,8 +17,6 @@ const portfolioSchema = new mongoose.Schema(
         currentPrice: { type: Number, default: 0 },
       },
     ],
-    totalValue: { type: Number, default: 0 },
-    profitLoss: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

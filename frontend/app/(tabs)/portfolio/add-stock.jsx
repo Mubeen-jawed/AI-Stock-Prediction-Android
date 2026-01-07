@@ -183,7 +183,7 @@ export default function AddStockScreen() {
 
           {/* Order details (same as before) */}
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Order Details</Text>
+            <Text style={styles.cardTitle}>Stock Details</Text>
             <Text style={styles.cardSub}>
               Enter quantity and buy price per share
             </Text>
@@ -230,6 +230,12 @@ export default function AddStockScreen() {
                   style={[styles.fieldInput, { textAlign: "left" }]}
                 />
               </View>
+              <Text
+                style={[styles.fieldPrefix, { marginLeft: 6, marginTop: 6 }]}
+              >
+                Current price: ${selected.currentPrice}
+              </Text>
+
               <View>
                 {allStocks?.map((s) => {
                   s.symbol === selected?.symbol && (

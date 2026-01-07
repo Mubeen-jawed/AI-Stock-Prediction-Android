@@ -12,6 +12,7 @@ import {
 import { API_URL } from "../../config/config";
 import { useAuth } from "../../context/AuthContext";
 import { router } from "expo-router";
+import ConfirmModal from "../../components/ConfirmModal";
 
 export default function ProfileScreen() {
   // const [profile, setProfile] = useState({});
@@ -105,11 +106,14 @@ export default function ProfileScreen() {
             <Text style={styles.featureTitle}>Your Portfolio</Text>
             <Text style={styles.featureSub}>Check Now</Text>
           </TouchableOpacity>
-          <View style={styles.featureCard}>
+          <TouchableOpacity
+            onPress={() => router.push("/watchlist")}
+            style={styles.featureCard}
+          >
             <Ionicons name="heart-outline" size={22} color="#e8eaed" />
             <Text style={styles.featureTitle}>Watchlist</Text>
             <Text style={styles.featureSub}>Check Now</Text>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* Recently used */}
@@ -121,13 +125,17 @@ export default function ProfileScreen() {
             <Text style={styles.settingText}>Setting</Text>
           </Text> */}
           {/* <View style={styles.footerDivider} /> */}
-          <Text>
-            {" "}
-            <Ionicons color="#f75858ff" name="log-out-outline" size={20} />
-          </Text>
-          <Text onPress={handleLogout} style={styles.footerText}>
-            Logout
-          </Text>
+          <Text> </Text>
+          <ConfirmModal
+            func={handleLogout}
+            confirmActionName="Logout"
+            style={styles.footerWrap}
+            textStyle={styles.footerText}
+            icon={
+              <Ionicons color="#f75858ff" name="log-out-outline" size={20} />
+            }
+            actionBtnColor="#f75858ff"
+          />
         </View>
       </ScrollView>
     </View>
@@ -241,12 +249,17 @@ const styles = StyleSheet.create({
     marginTop: 28,
     gap: 3,
   },
-  footerText: {
-    color: "#f75858ff",
-    fontSize: 15,
-    display: "flex",
+  footerWrap: {
+    flexDirection: "row",
+    justifyContent: "center",
     alignItems: "center",
-    // gapHorizontal: 4,
+  },
+  footerText: {
+    color: "#A9A9A9",
+    fontSize: 16,
+    fontWeight: "400",
+    paddingVertical: 10,
+    marginLeft: 4,
   },
 
   settingText: {

@@ -24,26 +24,22 @@ const predictPriceController = async (req, res) => {
     prophet: "predict_prophet.py",
     "news-lstm": "predict_news_lstm.py",
   }[modelType];
+  const BASE_DIR = path.resolve(__dirname, "..", "..");
 
-  const python = path.join(
-    __dirname,
-    "..",
-    "..",
+  const python = path.resolve(
+    BASE_DIR,
     "ai-models",
     "price-prediction",
-    "venv",
+    ".venv",
     "Scripts",
     "python.exe"
   );
-  console.log(pythonScript);
-  // Path to Python script
-  const scriptPath = path.join(
-    __dirname,
-    "..",
-    "..",
+
+  const scriptPath = path.resolve(
+    BASE_DIR,
     "ai-models",
     "price-prediction",
-    `${pythonScript}`
+    pythonScript
   );
   console.log(scriptPath, "scriptPath");
   const pyProcess = spawn(python, [scriptPath, ticker, days]);

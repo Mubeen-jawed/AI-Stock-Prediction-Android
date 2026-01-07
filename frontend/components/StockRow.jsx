@@ -14,7 +14,7 @@ export default function StockRow({ logo, name, price, changePercent, ticker }) {
       key={name}
       style={styles.row}
     >
-      <Image source={{ uri: logo }} style={styles.logo} />
+      <Image source={logo} style={styles.logo} />
       <View style={{ flex: 1 }}>
         <Text style={styles.name}>
           {ticker} <Text style={styles.ticker}>/ USD</Text>

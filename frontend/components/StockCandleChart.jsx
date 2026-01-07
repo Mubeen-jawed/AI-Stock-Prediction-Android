@@ -56,14 +56,57 @@ function downsampleCandles(candles, chartWidth) {
   return result;
 }
 
-// console.log("CandlestickChart", CandlestickChart);
-// console.log("Provider", CandlestickChart?.Provider);
-// console.log("Grid", CandlestickChart?.Grid);
-// console.log("Tooltip", CandlestickChart?.Tooltip);
+function getMinMax(candles) {
+  let min = Infinity,
+    max = -Infinity;
+  for (const c of candles) {
+    if (c.low < min) min = c.low;
+    if (c.high > max) max = c.high;
+  }
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return { min: 0, max: 0 };
+  if (min === max) return { min: min - 1, max: max + 1 };
+  return { min, max };
+}
 
-export default function StockCandleChart({ chart, loading, height = 300 }) {
-  // console.log(CandlestickChart());
+function niceStep(rawStep) {
+  // rounds step to 1/2/5 * 10^n
+  const pow = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const n = rawStep / pow;
+  const nice = n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10;
+  return nice * pow;
+}
+
+function buildYTicks(min, max, count = 4) {
+  const raw = (max - min) / (count - 1);
+  const step = niceStep(raw);
+  const start = Math.floor(min / step) * step;
+  const ticks = Array.from({ length: count }, (_, i) => start + i * step);
+  return ticks;
+}
+
+function buildXTicks(candles, count = 4) {
+  if (!candles?.length) return [];
+  const last = candles.length - 1;
+  return Array.from({ length: count }, (_, i) => {
+    const idx = Math.round((i * last) / (count - 1));
+    return { idx, ts: candles[idx].timestamp };
+  });
+}
+
+function formatX(ts, rangeKey) {
+  const d = new Date(ts);
+  if (rangeKey === "1D")
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (rangeKey === "5D") return d.toLocaleDateString([], { weekday: "short" });
+  if (rangeKey === "1M")
+    return d.toLocaleDateString([], { day: "2-digit", month: "short" });
+  return d.toLocaleDateString([], { month: "short", year: "2-digit" }); // 6M / 1Y / ALL
+}
+
+export default function StockCandleChart({ chart, loading, rangeKey }) {
   const W = Dimensions.get("window").width;
+
+  console.log(rangeKey);
 
   const candleData = useMemo(() => {
     const candles = chart?.candles; // supports a few shapes
@@ -87,17 +130,30 @@ export default function StockCandleChart({ chart, loading, height = 300 }) {
       .sort((a, b) => a.timestamp - b.timestamp);
   }, [chart]);
 
-  const chartWidth = W - 32; // same width you pass to CandlestickChart
+  const chartWidth = W - 100; // same width you pass to CandlestickChart
   const displayCandles = useMemo(
     () => downsampleCandles(candleData, chartWidth),
     [candleData, chartWidth]
+  );
+
+  const AXIS_Y_W = 40; // right labels width
+  const CHART_W = W - 40 - AXIS_Y_W;
+
+  const { min, max } = useMemo(
+    () => getMinMax(displayCandles),
+    [displayCandles]
+  );
+  const yTicks = useMemo(() => buildYTicks(min, max, 5), [min, max]);
+  const xTicks = useMemo(
+    () => buildXTicks(displayCandles, 5),
+    [displayCandles]
   );
 
   if (loading) {
     return (
       <View
         style={{
-          height,
+          height: 300,
           borderRadius: 14,
           justifyContent: "center",
           alignItems: "center",
@@ -113,11 +169,11 @@ export default function StockCandleChart({ chart, loading, height = 300 }) {
     return (
       <View
         style={{
-          height,
+          height: 300,
           borderRadius: 14,
           justifyContent: "center",
           alignItems: "center",
-          backgroundColor: "#0B0E11",
+          backgroundColor: "#101014",
         }}
       >
         <Text style={{ color: "#A7B1BC" }}>No chart data</Text>
@@ -128,18 +184,100 @@ export default function StockCandleChart({ chart, loading, height = 300 }) {
   return (
     <View
       style={{
-        backgroundColor: "#0B0E11",
+        backgroundColor: "#101014",
         borderRadius: 14,
-        paddingVertical: 10,
+        paddingBottom: 20,
       }}
     >
-      <CandlestickChart.Provider data={candleData}>
-        <CandlestickChart height={height} width={W - 32}>
-          <CandlestickChart.Candles />
-          <CandlestickChart.Crosshair>
-            <CandlestickChart.Tooltip />
-          </CandlestickChart.Crosshair>
-        </CandlestickChart>
+      {/* IMPORTANT: feed displayCandles (downsampled) */}
+      <CandlestickChart.Provider data={displayCandles}>
+        {/* Crosshair labels (interactive) */}
+        <View style={{ paddingHorizontal: 0, paddingBottom: 6 }}>
+          <CandlestickChart.PriceText
+            style={{
+              color: "#E6EEF8",
+              fontSize: 12,
+              fontWeight: "600",
+              marginLeft: 6,
+            }}
+          />
+          <CandlestickChart.DatetimeText
+            style={{
+              color: "#A7B1BC",
+              fontSize: 9,
+              marginTop: 0,
+              marginLeft: 6,
+            }}
+          />
+        </View>
+
+        {/* Chart + Y axis */}
+        <View style={{ flexDirection: "row-reverse", paddingHorizontal: 0 }}>
+          {/* Y axis labels */}
+          <View
+            style={{
+              width: AXIS_Y_W,
+              justifyContent: "space-between",
+              paddingLeft: 0,
+              height: 250,
+            }}
+          >
+            {yTicks
+              .slice()
+              .reverse()
+              .map((v) => (
+                <Text key={String(v)} style={{ color: "#8B96A5", fontSize: 9 }}>
+                  {v.toFixed(2)}
+                </Text>
+              ))}
+          </View>
+
+          {/* Chart */}
+          <View style={{ width: CHART_W }}>
+            <CandlestickChart
+              height={250}
+              width={CHART_W - 25}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: 15,
+              }}
+            >
+              {/* <CandlestickChart.Grid /> */}
+              <CandlestickChart.Candles />
+              <CandlestickChart.Crosshair>
+                <CandlestickChart.Tooltip />
+              </CandlestickChart.Crosshair>
+            </CandlestickChart>
+          </View>
+        </View>
+
+        {/* X axis labels */}
+        <View
+          style={{
+            flexDirection: "row",
+            paddingHorizontal: 0,
+            paddingTop: 8,
+            justifyContent: "left",
+            marginLeft: 21,
+          }}
+        >
+          <View style={{ width: AXIS_Y_W - 35 }} />
+          <View
+            style={{
+              width: CHART_W - 30,
+              flexDirection: "row",
+              justifyContent: "space-between",
+            }}
+          >
+            {xTicks.map((t) => (
+              <Text key={t.idx} style={{ color: "#8B96A5", fontSize: 9 }}>
+                {formatX(t.ts, rangeKey)}
+              </Text>
+            ))}
+          </View>
+        </View>
       </CandlestickChart.Provider>
     </View>
   );

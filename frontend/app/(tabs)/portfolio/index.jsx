@@ -4,6 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { useState, useCallback } from "react";
 import { useFocusEffect } from "expo-router";
 import {
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,18 +19,22 @@ import PositionRow from "../../../components/PositionRow";
 import SkeletonLoader from "../../../components/SkeletonLoader";
 import { fetchPortfolio } from "../../../data/portfolio";
 import { useAuth } from "../../../context/AuthContext";
+import { useData } from "../../../context/DataContext";
 
 export default function PortfolioScreen() {
   const [portfolio, setPortfolio] = useState(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { token } = useAuth();
+  const { setApiData } = useData();
 
   async function load() {
     try {
       setLoading(true);
       const data = await fetchPortfolio(token);
       setPortfolio(data);
+      setApiData(data.positions);
+      // console.log(data.positions);
     } finally {
       setLoading(false);
     }
@@ -64,13 +69,43 @@ export default function PortfolioScreen() {
     text: d.symbol,
   }));
 
+  // console.log(portfolio);
+
+  if (portfolio === null) {
+    return <SkeletonLoader />;
+  }
+
+  if (
+    portfolio?.distribution?.length === 0 &&
+    portfolio?.summary?.length === 0
+  ) {
+    return (
+      <View style={styles.emptyScreen}>
+        <TouchableOpacity
+          style={styles.emptyContainer}
+          activeOpacity={0.9}
+          onPress={() => router.push("/portfolio/add-stock")}
+        >
+          <Ionicons
+            name="add"
+            size={28}
+            color="#FFD700"
+            style={styles.emptyIcon}
+          />
+
+          <Text style={styles.emptyText}>Add portfolio to get started</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.screen}>
       <StatusBar style="light" />
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
         <Text style={styles.title}>Portfolio</Text>
 
-        {loading || !portfolio ? (
+        {loading ? (
           <SkeletonLoader />
         ) : (
           <>
@@ -127,16 +162,40 @@ export default function PortfolioScreen() {
 
             {/* Positions list */}
             <View style={[styles.card, { paddingHorizontal: 0 }]}>
-              <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
-                <Text style={styles.cardTitle}>Holdings</Text>
-                <Text style={styles.cardSub}>
-                  Quantity, average buy price, and performance
-                </Text>
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 12,
+                  paddingHorizontal: 16,
+                }}
+              >
+                <View style={{ paddingBottom: 8 }}>
+                  <Text style={styles.cardTitle}>Holdings</Text>
+                  <Text style={styles.cardSub}>
+                    Quantity, average buy price, and performance
+                  </Text>
+                </View>
+                <Pressable onPress={() => router.push("/portfolio/stock-edit")}>
+                  <Ionicons
+                    style={{ marginBottom: 30 }}
+                    name="create-outline"
+                    size={25}
+                    color="#FFD700"
+                  />
+                </Pressable>
               </View>
-
               {portfolio.positions.map((pos) => (
                 <PositionRow key={pos.symbol} pos={pos} />
               ))}
+              <Text
+                onPress={() => router.push("/portfolio/stock-edit")}
+                style={styles.more}
+              >
+                Edit Portfolio
+                <Ionicons name="chevron-forward" size={12} color="#FFD700" />
+              </Text>
             </View>
           </>
         )}
@@ -212,4 +271,35 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginLeft: 6,
   },
+  emptyScreen: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+    backgroundColor: "#070707",
+  },
+
+  emptyContainer: {
+    width: "100%",
+    maxWidth: 320,
+    paddingVertical: 28,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "rgba(255, 215, 0, 0.6)",
+    alignItems: "center",
+    backgroundColor: "transparent",
+  },
+
+  emptyIcon: {
+    marginBottom: 10,
+    opacity: 0.85,
+  },
+
+  emptyText: {
+    fontSize: 14,
+    color: "#A9A9A9",
+    fontWeight: "400",
+    letterSpacing: 0.2,
+  },
+  more: { color: "#FFD700", alignSelf: "center", marginVertical: 12 },
 });

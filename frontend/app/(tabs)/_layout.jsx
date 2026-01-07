@@ -80,6 +80,13 @@ export default function TabsLayout() {
         }}
       />
 
+      <Tabs.Screen
+        name="watchlist"
+        options={{
+          href: null, // hidden
+        }}
+      />
+
       {/* <Tabs.Screen
         name="portfolio/add-stock"
         options={{

@@ -13,11 +13,16 @@ import Loader from "../../components/Loader";
 import { fetchProfile } from "../../data/profile";
 import { fetchNews } from "../../data/news";
 
+import apple from "../../assets/images/stock-logos/apple.png";
+import microsoft from "../../assets/images/stock-logos/microsoft.png";
+import nvidia from "../../assets/images/stock-logos/nvidia.png";
+import tesla from "../../assets/images/stock-logos/tesla.png";
+
 import { useAuth } from "../../context/AuthContext";
 
 const GAINERS = [
   {
-    logo: "https://logo.clearbit.com/apple.com",
+    logo: apple,
     name: "Apple",
     ticker: "AAPL",
     price: "228.54",
@@ -25,7 +30,7 @@ const GAINERS = [
     vol: "24.8B",
   },
   {
-    logo: "https://logo.clearbit.com/nvidia.com",
+    logo: nvidia,
     name: "NVIDIA",
     ticker: "NVDA",
     price: "123.91",
@@ -33,7 +38,7 @@ const GAINERS = [
     vol: "18.3B",
   },
   {
-    logo: "https://logo.clearbit.com/tesla.com",
+    logo: tesla,
     name: "Tesla",
     ticker: "TSLA",
     price: "254.02",
@@ -41,7 +46,7 @@ const GAINERS = [
     vol: "12.4B",
   },
   {
-    logo: "https://logo.clearbit.com/microsoft.com",
+    logo: microsoft,
     name: "Microsoft",
     ticker: "MSFT",
     price: "425.77",

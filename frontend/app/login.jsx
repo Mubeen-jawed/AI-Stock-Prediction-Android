@@ -7,6 +7,7 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -24,9 +25,12 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
     try {
+      setLoading(true);
+
       const res = await fetch(`${API_URL}/api/users/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -46,8 +50,9 @@ export default function Login() {
       router.replace("/home");
     } catch (err) {
       setError(true);
-
       console.log("Login error:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -131,7 +136,23 @@ export default function Login() {
 
           {/* Login Button */}
           <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-            <Text style={styles.loginButtonText}>Login Now</Text>
+            <Text style={styles.loginButtonText}>
+              {loading ? (
+                <ActivityIndicator size="small" color="#141414" />
+              ) : (
+                "Login Now"
+              )}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.alreadyRow}
+            onPress={() => router.push("/signup")}
+          >
+            <Text style={styles.alreadyText}>
+              Already have an account?{" "}
+              <Text style={styles.alreadyLink}>Signup</Text>
+            </Text>
           </TouchableOpacity>
 
           {/* Divider */}
@@ -233,5 +254,17 @@ const styles = StyleSheet.create({
     borderColor: "#2C2C31",
     justifyContent: "center",
     alignItems: "center",
+  },
+  alreadyRow: {
+    marginTop: 20,
+    alignItems: "center",
+  },
+  alreadyText: {
+    color: "#9A9CA4",
+    fontSize: 13,
+  },
+  alreadyLink: {
+    color: "#FFA726",
+    fontWeight: "600",
   },
 });

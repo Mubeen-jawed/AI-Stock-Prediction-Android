@@ -3,14 +3,15 @@ const { protect } = require("../middleware/authMiddleware.js");
 const {
   createPortfolio,
   getPortfolioPerformance,
+  updateHoldings,
   deletePortfolio,
 } = require("../controllers/portfolioController.js");
 
 const router = express.Router();
 
-router.post("/", protect, createPortfolio);
-// router.get("/", protect, getPortfolios);
-router.delete("/:id", protect, deletePortfolio);
 router.get("/", protect, getPortfolioPerformance);
+router.post("/", protect, createPortfolio);
+router.delete("/:symbol", protect, deletePortfolio);
+router.put("/update-holdings", protect, updateHoldings);
 
 module.exports = router;

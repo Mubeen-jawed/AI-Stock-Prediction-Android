@@ -7,6 +7,7 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -29,28 +30,31 @@ export default function Signup() {
 
   // inside your component:
   const handleSignup = async () => {
-    const res = await fetch(`${API_URL}/api/users/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
-    });
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_URL}/api/users/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      setError(true);
-      throw new Error(data.message || "Signup failed");
-    }
-
-    // If backend also returns token & user:
-    if (!error) {
-      await login(data.user, data.token);
-      router.replace("/home");
+      const data = await res.json();
+      console.log(data);
+      router.replace("/");
+    } catch (err) {
+      setError(data.message || "Signup failed");
+      console.log("Signup error:", err);
+      return;
+    } finally {
+      setLoading(false);
+      console.log("object");
     }
   };
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      {error && <Text style={{ color: "red", marginTop: 8 }}>{error}</Text>}
+      {error != null && (
+        <Text style={{ color: "red", marginTop: 8 }}>{error}</Text>
+      )}
 
       <StatusBar style="light" />
 
@@ -134,7 +138,13 @@ export default function Signup() {
 
           {/* Signup Button */}
           <TouchableOpacity style={styles.signupButton} onPress={handleSignup}>
-            <Text style={styles.signupButtonText}>Sign Up</Text>
+            <Text style={styles.signupButtonText}>
+              {loading ? (
+                <ActivityIndicator size="small" color="#141414" />
+              ) : (
+                "Sign Up"
+              )}
+            </Text>
           </TouchableOpacity>
 
           {/* Divider */}

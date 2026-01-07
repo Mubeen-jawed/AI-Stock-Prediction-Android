@@ -1,18 +1,26 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router";
 
 export default function PositionRow({ pos }) {
+  const router = useRouter();
+
   const invested = pos.quantity * pos.avgPrice;
   const current = pos.quantity * pos.currentPrice;
   const pl = current - invested;
   const up = pl >= 0;
   const plPct = invested ? (pl / invested) * 100 : 0;
 
+  console.log(pos);
+
   return (
-    <View style={styles.row}>
+    <TouchableOpacity
+      onPress={() => router.push(`/stocks/${pos.symbol}`)}
+      style={styles.row}
+    >
       <View style={{ flex: 1.2 }}>
         <Text style={styles.name}>{pos.name}</Text>
         <Text style={styles.ticker}>
-          {pos.ticker} • {pos.quantity} shares
+          {pos.symbol} • {pos.quantity} shares
         </Text>
       </View>
 
@@ -39,7 +47,7 @@ export default function PositionRow({ pos }) {
           </Text>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 

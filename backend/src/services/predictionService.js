@@ -2,6 +2,7 @@ const { spawn } = require("child_process");
 const path = require("path");
 
 function predictPrice(features) {
+  console.log("object");
   return new Promise((resolve, reject) => {
     const pythonPath = path.resolve(
       "D:/Projects/AI-Stock-Prediction-Android/ai-models/price-prediction/venv/Scripts/python.exe"

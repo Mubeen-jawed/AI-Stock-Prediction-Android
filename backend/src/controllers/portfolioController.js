@@ -62,20 +62,34 @@ const createPortfolio = async (req, res) => {
 // };
 
 // Delete a portfolio
+// DELETE /api/portfolio/stocks/:symbol
 const deletePortfolio = async (req, res) => {
   try {
-    const portfolio = await Portfolio.findById(req.params.id);
+    const { symbol } = req.params;
 
-    if (!portfolio)
+    const portfolio = await Portfolio.findOne({ user: req.user._id });
+    if (!portfolio) {
       return res.status(404).json({ message: "Portfolio not found" });
-    if (portfolio.user.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: "Unauthorized action" });
     }
 
-    await portfolio.deleteOne();
-    res.status(200).json({ message: "Portfolio deleted successfully" });
+    const before = portfolio.stocks.length;
+
+    portfolio.stocks = portfolio.stocks.filter(
+      (s) => (s.symbol || "").toUpperCase() !== String(symbol).toUpperCase()
+    );
+
+    if (portfolio.stocks.length === before) {
+      return res.status(404).json({ message: "Stock not found in portfolio" });
+    }
+
+    await portfolio.save();
+
+    return res.status(200).json({
+      message: "Stock deleted successfully",
+      portfolio,
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 };
 
@@ -94,20 +108,18 @@ const getPortfolioPerformance = async (req, res) => {
     for (const stock of portfolio.stocks) {
       // const live = await getLivePrice(stock.symbol); // your helper
 
-      const totalValue = stock.quantity * stock.currentPrice;
-      const invested = stock.quantity * stock.buyPrice;
-      const profitLoss = totalValue - invested;
-      const percentChange = ((profitLoss / invested) * 100).toFixed(2);
+      // const totalValue = stock.quantity * stock.currentPrice;
+      // const invested = stock.quantity * stock.buyPrice;
+      // const profitLoss = totalValue - invested;
+      // const percentChange = ((profitLoss / invested) * 100).toFixed(2);
 
       results.push({
+        logo: stock.logo,
         symbol: stock.symbol,
         companyName: stock.companyName,
         quantity: stock.quantity,
         buyPrice: stock.buyPrice,
         currentPrice: stock.currentPrice,
-        totalValue: totalValue.toFixed(2),
-        profitLoss: profitLoss.toFixed(2),
-        percentChange,
       });
     }
 
@@ -119,4 +131,55 @@ const getPortfolioPerformance = async (req, res) => {
   }
 };
 
-module.exports = { createPortfolio, deletePortfolio, getPortfolioPerformance };
+const updateHoldings = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { payload } = req.body; // [{ symbol, quantity, buyPrice }]
+
+    console.log(req.body);
+
+    if (!Array.isArray(payload) || payload.length === 0) {
+      return res.status(400).json({ message: "payload array is required" });
+    }
+
+    // sanitize
+    const clean = payload
+      .filter((s) => typeof s.symbol === "string" && s.symbol.trim())
+      .map((s) => ({
+        symbol: s.symbol.trim().toUpperCase(),
+        quantity: Number(s.quantity) || 0,
+        buyPrice: Number(s.buyPrice) || 0,
+      }));
+
+    // Build $set + arrayFilters for each symbol
+    const setObj = {};
+    const arrayFilters = [];
+
+    clean.forEach((s, i) => {
+      setObj[`stocks.$[s${i}].quantity`] = s.quantity;
+      setObj[`stocks.$[s${i}].buyPrice`] = s.buyPrice;
+      arrayFilters.push({ [`s${i}.symbol`]: s.symbol });
+    });
+
+    const updated = await Portfolio.findOneAndUpdate(
+      { user: userId },
+      { $set: setObj },
+      { new: true, arrayFilters }
+    );
+
+    if (!updated)
+      return res.status(404).json({ message: "Portfolio not found" });
+
+    return res.json({ message: "Updated", portfolio: updated });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+module.exports = {
+  createPortfolio,
+  deletePortfolio,
+  getPortfolioPerformance,
+  updateHoldings,
+};
