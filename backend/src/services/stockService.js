@@ -207,7 +207,7 @@ const fetchPSXData = async () => {
       sortBy: "name",
       sortOrder: "asc",
     },
-    range: [0, 500],
+    range: [0, 300],
   };
 
   const res = await fetch(url, {
@@ -230,7 +230,6 @@ const fetchPSXData = async () => {
   }
 
   const json = JSON.parse(text);
-  console.log("Fetched PSX data:", json.totalCount, "items");
   return json.data.map((item) => ({
     symbol: item.s.replace("PSX:", ""),
     price: item.d[1],
@@ -244,9 +243,9 @@ const getPSXHistory = async (symbol, range, interval) => {
   const yahooSymbol = `${symbol.toUpperCase()}.KA`;
   // range=max for full history, interval=1d for daily candles
   // NOTE: Yahoo Finance often ignores intraday intervals (e.g., 15m, 1h) for PSX symbols and returns daily data instead.
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?interval=${interval || "1d"}&range=${range || "max"}`;
-
-  console.log(`Fetching history for ${yahooSymbol} from Yahoo Finance...`);
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?interval=${
+    interval || "1d"
+  }&range=${range || "max"}`;
 
   try {
     const response = await axios.get(url, {
@@ -327,7 +326,6 @@ async function fetchSingleStock(symbol) {
   });
 
   const json = await res.json();
-  console.log(json, "Fetched single stock JSON", res);
   if (!json.data || json.data.length === 0) {
     console.log("No data returned for", symbol);
     return null;

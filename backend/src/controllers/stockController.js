@@ -30,8 +30,6 @@ const getStockCandles = async (req, res) => {
 const getStockPrice = async (req, res) => {
   const { symbol } = req.params;
 
-  console.log(symbol);
-
   if (!symbol) {
     return res.status(400).json({ message: "Stock symbol is required" });
   }
@@ -131,10 +129,8 @@ const getPSXStocks = async (req, res) => {
 
 const getSinglePSXStock = async (req, res) => {
   const symbol = req.params.symbol.toUpperCase();
-  console.log(symbol, "Fetching single PSX stock data...");
   try {
     const data = await fetchSingleStock(symbol);
-    console.log(data, "Single stock data");
     if (!data) return res.status(404).json({ error: "Stock not found" });
     res.json(data);
   } catch (err) {
@@ -146,7 +142,6 @@ const getSinglePSXStock = async (req, res) => {
 const getPSXStockHistory = async (req, res) => {
   const { symbol } = req.params;
   const { range, interval } = req.query;
-  console.log(interval, range, "Fetching PSX stock history...");
   try {
     const data = await getPSXHistory(symbol, range, interval);
     res.json(data);
