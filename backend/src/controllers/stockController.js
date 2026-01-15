@@ -3,6 +3,9 @@ const {
   getLivePrice,
   getCompanyProfile,
   getCandlesTwelveData,
+  fetchPSXData,
+  getPSXHistory,
+  fetchSingleStock,
 } = require("../services/stockService.js");
 
 const getStockCandles = async (req, res) => {
@@ -111,5 +114,52 @@ const getStocksList = async (req, res) => {
     return res.status(500).json({ message: err.message });
   }
 };
+const getPSXStocks = async (req, res) => {
+  let psxCache = {
+    lastUpdated: 0,
+    data: [],
+  };
+  const now = Date.now();
+  console.log("Fetching PSX data...");
+  if (!psxCache.data.length || now - psxCache.lastUpdated > 5000) {
+    const data = await fetchPSXData();
+    psxCache = { lastUpdated: now, data };
+  }
 
-module.exports = { getStockPrice, getStocksList, getStockCandles };
+  res.json(psxCache.data);
+};
+
+const getSinglePSXStock = async (req, res) => {
+  const symbol = req.params.symbol.toUpperCase();
+  console.log(symbol, "Fetching single PSX stock data...");
+  try {
+    const data = await fetchSingleStock(symbol);
+    console.log(data, "Single stock data");
+    if (!data) return res.status(404).json({ error: "Stock not found" });
+    res.json(data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+const getPSXStockHistory = async (req, res) => {
+  const { symbol } = req.params;
+  const { range, interval } = req.query;
+  console.log(interval, range, "Fetching PSX stock history...");
+  try {
+    const data = await getPSXHistory(symbol, range, interval);
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+module.exports = {
+  getStockPrice,
+  getStocksList,
+  getStockCandles,
+  getPSXStocks,
+  getSinglePSXStock,
+  getPSXStockHistory,
+};
