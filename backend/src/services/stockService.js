@@ -313,6 +313,8 @@ async function fetchSingleStock(symbol) {
     range: [0, 1],
   };
 
+  // console.log(JSON.stringify(body));
+
   const res = await fetch(url, {
     method: "POST",
     headers: {

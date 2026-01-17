@@ -110,7 +110,7 @@ export default function Home() {
               <Text style={styles.userName}> {user?.name || "Guest"} </Text>
             </Text>
 
-            <PromoCard title="Deposit $100 and get $20 bonus" />
+            <PromoCard title="Enjoy Your Financial Literacy With Us" />
 
             {/* Two promo chips row */}
             {/* <View style={styles.cardRow}>
@@ -125,14 +125,19 @@ export default function Home() {
         </View> */}
 
             {/* Tabs like Bybit (top + sub) */}
-            <SegmentTabs
-              tabs={["Watchlist", "Top", "New", "Gainers", "Losers", "Volume"]}
-              active={topTab}
-              onChange={setTopTab}
-            />
+            {/* <SegmentTabs tabs={["Top"]} active={topTab} onChange={setTopTab} /> */}
 
             {/* Stock list (gainers sample) */}
             <View style={styles.listCard}>
+              <View style={{ flexDirection: "row", padding: 16 }}>
+                <Text style={{ color: "#e8eaed", fontWeight: "800" }}>
+                  Top Performers
+                </Text>
+                <Text style={{ color: "#9aa0a6", fontWeight: "700" }}>
+                  {" "}
+                  Stocks
+                </Text>
+              </View>
               {GAINERS.map((s) => (
                 <StockRow key={s.ticker} {...s} />
               ))}

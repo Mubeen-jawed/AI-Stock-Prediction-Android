@@ -40,7 +40,7 @@ function formatDay(ts) {
 
 export default function PredictiveGraph({
   predictions = [],
-  loading = false,
+  loading,
   title = "Next 15 Days AI Price Prediction",
   fixedDays = 7,
 }) {
@@ -155,6 +155,21 @@ export default function PredictiveGraph({
         <Text style={{ color: "#A7B1BC" }}>No chart data</Text>
       </View>
     );
+  }
+
+  if (loading) {
+    <View
+      style={{
+        height: 320,
+        borderRadius: 14,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#101014",
+        marginTop: 20,
+      }}
+    >
+      <ActivityIndicator />
+    </View>;
   }
 
   return (
