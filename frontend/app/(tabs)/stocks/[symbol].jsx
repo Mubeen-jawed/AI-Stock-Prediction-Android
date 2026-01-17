@@ -10,7 +10,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useAuth } from "../../../context/AuthContext";
-import { API_URL } from "../../../config/config";
+import { API_URL } from "../../config/config";
 import Loader from "../../../components/Loader";
 import StockCandleChart from "../../../components/StockCandleChart";
 import PredictiveGraph from "../../../components/PredictiveGraph";
@@ -572,6 +572,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 6,
     marginBottom: 12,
+    display: "none",
   },
   circleBtn: {
     width: 34,

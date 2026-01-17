@@ -1,4 +1,4 @@
-import { API_URL } from "../config/config";
+import { API_URL } from "../app/config/config";
 
 export async function fetchNewsDetails(token, id) {
   const res = await fetch(`${API_URL}/api/news/${id}`, {

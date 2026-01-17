@@ -23,6 +23,8 @@ export default function StocksScreen() {
     const data = await fetchStocks({ topTab, q, token });
     setRows(data);
     setLoading(false);
+
+    // console.log(data);
   }
 
   // useEffect(() => {

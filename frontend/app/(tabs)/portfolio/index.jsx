@@ -34,7 +34,7 @@ export default function PortfolioScreen() {
       const data = await fetchPortfolio(token);
       setPortfolio(data);
       setApiData(data.positions);
-      // console.log(data.positions);
+      console.log(data);
     } finally {
       setLoading(false);
     }

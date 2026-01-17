@@ -1,6 +1,6 @@
 // Minimal mock + drop-in API adapter.
 // Later: replace fetchStocks(...) with a real HTTP call.
-import { API_URL } from "../config/config";
+import { API_URL } from "../app/config/config.js";
 import { stocksData } from "./stocksData.js";
 
 // const SAMPLE = [
