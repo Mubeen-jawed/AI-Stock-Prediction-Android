@@ -177,12 +177,173 @@ const getCandlesTwelveData = async (symbol, range = "1M") => {
       candles,
     };
   } catch (err) {
-    // axios network error
     const msg =
       err?.response?.data?.message || err.message || "Unable to fetch candles";
     throw new Error(msg);
   }
 };
+const fetchPSXData = async () => {
+  const url = "https://scanner.tradingview.com/pakistan/scan";
+
+  const body = {
+    filter: [],
+    options: { lang: "en" },
+    markets: ["pakistan"],
+    symbols: {
+      query: { types: [] },
+      tickers: [],
+    },
+    columns: [
+      "name",
+      "close",
+      "change",
+      "change_abs",
+      "open",
+      "high",
+      "low",
+      "volume",
+    ],
+    sort: {
+      sortBy: "name",
+      sortOrder: "asc",
+    },
+    range: [0, 300],
+  };
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "User-Agent": "Mozilla/5.0",
+      Accept: "application/json",
+      Origin: "https://www.tradingview.com",
+      Referer: "https://www.tradingview.com/",
+    },
+    body: JSON.stringify(body),
+  });
+
+  const text = await res.text();
+
+  if (!text.startsWith("{")) {
+    console.error("Non-JSON response:", text);
+    return [];
+  }
+
+  const json = JSON.parse(text);
+  return json.data.map((item) => ({
+    symbol: item.s.replace("PSX:", ""),
+    price: item.d[1],
+    changePercent: item.d[2],
+    changeAbsolute: item.d[3],
+    volume: item.d[4],
+  }));
+};
+
+const getPSXHistory = async (symbol, range, interval) => {
+  const yahooSymbol = `${symbol.toUpperCase()}.KA`;
+  // range=max for full history, interval=1d for daily candles
+  // NOTE: Yahoo Finance often ignores intraday intervals (e.g., 15m, 1h) for PSX symbols and returns daily data instead.
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?interval=${
+    interval || "1d"
+  }&range=${range || "max"}`;
+
+  try {
+    const response = await axios.get(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0", // Yahoo sometimes blocks without UA
+      },
+    });
+
+    const result = response.data?.chart?.result?.[0];
+    if (!result) {
+      throw new Error("No data found in Yahoo Finance response");
+    }
+
+    const timestamps = result.timestamp;
+    const quote = result.indicators.quote[0];
+
+    if (!timestamps || !quote) {
+      return { symbol, history: [] };
+    }
+
+    const history = timestamps
+      .map((ts, i) => ({
+        timestamp: new Date(ts * 1000).toISOString(),
+        open: quote.open[i],
+        high: quote.high[i],
+        low: quote.low[i],
+        close: quote.close[i],
+        volume: quote.volume[i],
+      }))
+      .filter((candle) => candle.open != null && candle.close != null); // Filter out empty/null candles
+
+    return {
+      symbol: symbol.toUpperCase(),
+      source: "Yahoo Finance",
+      count: history.length,
+      history,
+    };
+  } catch (err) {
+    console.error(`Error fetching history for ${symbol}:`, err.message);
+    throw new Error(`Failed to fetch history for ${symbol}`);
+  }
+};
+
+async function fetchSingleStock(symbol) {
+  const url = "https://scanner.tradingview.com/pakistan/history";
+
+  const body = {
+    filter: [],
+    options: { lang: "en" },
+    markets: ["pakistan"],
+    symbols: {
+      query: { types: [] },
+      tickers: [`PSX:${symbol.toUpperCase()}`],
+    },
+    columns: [
+      "name",
+      "close",
+      "change",
+      "change_abs",
+      "open",
+      "high",
+      "low",
+      "volume",
+    ],
+    range: [0, 1],
+  };
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      "User-Agent": "Mozilla/5.0",
+      Origin: "https://www.tradingview.com",
+      Referer: "https://www.tradingview.com/",
+    },
+    body: JSON.stringify(body),
+  });
+
+  const json = await res.json();
+  if (!json.data || json.data.length === 0) {
+    console.log("No data returned for", symbol);
+    return null;
+  }
+
+  const d = json.data[0].d;
+
+  return {
+    symbol: symbol.toUpperCase(),
+    price: d[1],
+    changePercent: d[2],
+    changeAbsolute: d[3],
+    open: d[4],
+    high: d[5],
+    low: d[6],
+    volume: d[7],
+  };
+}
 
 module.exports = {
   getLivePrice,
@@ -190,4 +351,7 @@ module.exports = {
   fetchStockData,
   getCompanyProfile,
   getCandlesTwelveData,
+  getPSXHistory,
+  fetchPSXData,
+  fetchSingleStock,
 };
