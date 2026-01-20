@@ -112,19 +112,24 @@ const getStocksList = async (req, res) => {
     return res.status(500).json({ message: err.message });
   }
 };
-const getPSXStocks = async (req, res) => {
-  let psxCache = {
-    lastUpdated: 0,
-    data: [],
-  };
-  const now = Date.now();
-  console.log("Fetching PSX data...");
-  if (!psxCache.data.length || now - psxCache.lastUpdated > 5000) {
-    const data = await fetchPSXData();
-    psxCache = { lastUpdated: now, data };
-  }
+let psxCache = {
+  lastUpdated: 0,
+  data: [],
+};
 
-  res.json(psxCache.data);
+const getPSXStocks = async (req, res) => {
+  const now = Date.now();
+  try {
+    if (!psxCache.data.length || now - psxCache.lastUpdated > 5000) {
+      console.log("Fetching fresh PSX data...");
+      const data = await fetchPSXData();
+      psxCache = { lastUpdated: now, data };
+    }
+    res.json(psxCache.data);
+  } catch (err) {
+    console.error("Error in getPSXStocks:", err.message);
+    res.status(500).json({ error: "Failed to fetch PSX data" });
+  }
 };
 
 const getSinglePSXStock = async (req, res) => {
@@ -138,6 +143,7 @@ const getSinglePSXStock = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
 
 const getPSXStockHistory = async (req, res) => {
   const { symbol } = req.params;

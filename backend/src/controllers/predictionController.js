@@ -13,6 +13,7 @@
 // routes/predictRoute.js
 const { spawn } = require("child_process");
 const path = require("path");
+const { predictPrice } = require("../services/predictionService.js");
 
 const predictPriceController = async (req, res) => {
   const { ticker } = req.params;
@@ -73,4 +74,21 @@ const predictPriceController = async (req, res) => {
   });
 };
 
-module.exports = { predictPriceController };
+const getPrediction = async (req, res) => {
+  const { symbol } = req.params;
+  const { days = 7, model = "lstm" } = req.query;
+
+  if (!symbol) {
+    return res.status(400).json({ message: "Stock symbol is required" });
+  }
+
+  try {
+    const data = await predictPrice(symbol.toUpperCase(), parseInt(days), model);
+    res.json(data);
+  } catch (err) {
+    console.error("Prediction Error:", err.message);
+    res.status(500).json({ message: err.message });
+  }
+};
+module.exports = { predictPriceController , getPrediction,
+ };

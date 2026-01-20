@@ -1,40 +1,34 @@
-const { spawn } = require("child_process");
-const path = require("path");
+const axios = require("axios");
 
-function predictPrice(features) {
-  console.log("object");
-  return new Promise((resolve, reject) => {
-    const pythonPath = path.resolve(
-      "D:/Projects/AI-Stock-Prediction-Android/ai-models/price-prediction/venv/Scripts/python.exe"
+// Get the Python API URL from environment variables or use default
+const PYTHON_API_URL = process.env.PYTHON_API_URL || "http://127.0.0.1:8001";
+
+/**
+ * Fetches stock price predictions from the dedicated Python AI service.
+ * @param {string} symbol - The stock symbol (e.g., AAPL).
+ * @param {number} days - Number of days to predict (default 7).
+ * @param {string} modelType - The model to use ('lstm' or 'prophet').
+ * @returns {Promise<Object>} - The prediction result.
+ */
+async function predictPrice(symbol, days = 7, modelType = "lstm") {
+  try {
+    const response = await axios.post(`${PYTHON_API_URL}/prediction`, {
+      symbol: symbol,
+      days: days,
+      model_type: modelType,
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Error in prediction service:",
+      error.response?.data || error.message
     );
-    const scriptPath = path.resolve(
-      "D:/Projects/AI-Stock-Prediction-Android/ai-models/price-prediction/predict_price.py"
+    throw new Error(
+      error.response?.data?.detail ||
+        "Failed to fetch predictions from AI service"
     );
-    const pythonProcess = spawn(pythonPath, [scriptPath]);
-
-    let dataString = "";
-
-    pythonProcess.stdout.on("data", (data) => {
-      dataString += data.toString();
-    });
-
-    pythonProcess.stderr.on("data", (data) => {
-      console.error("Python error:", data.toString());
-    });
-
-    pythonProcess.on("close", () => {
-      try {
-        const result = JSON.parse(dataString);
-        resolve(result);
-      } catch (err) {
-        reject("Invalid Python response: " + dataString);
-      }
-    });
-
-    // Send input data to Python
-    pythonProcess.stdin.write(JSON.stringify({ features }));
-    pythonProcess.stdin.end();
-  });
+  }
 }
 
 module.exports = { predictPrice };
