@@ -5,13 +5,17 @@ const {
   getPortfolioPerformance,
   updateHoldings,
   deletePortfolio,
+  getPortfolioPrediction,
 } = require("../controllers/portfolioController.js");
 
 const router = express.Router();
 
 router.get("/", protect, getPortfolioPerformance);
-router.post("/", protect, createPortfolio);
+// router.post("/", protect, createPortfolio);
+router.post("/", createPortfolio);
 router.delete("/:symbol", protect, deletePortfolio);
 router.put("/update-holdings", protect, updateHoldings);
+// router.get("/prediction", protect, getPortfolioPrediction);
+router.get("/prediction", getPortfolioPrediction);
 
 module.exports = router;

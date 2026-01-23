@@ -1,5 +1,7 @@
+const mongoose = require("mongoose");
 const Portfolio = require("../models/Portfolio.js");
 const { getLivePrice } = import("../services/stockService.js");
+const { predictPrice } = require("../services/predictionService.js");
 
 // Create new portfolio
 const createPortfolio = async (req, res) => {
@@ -12,12 +14,15 @@ const createPortfolio = async (req, res) => {
         .json({ message: "Please provide at least one stock" });
     }
 
-    let portfolio = await Portfolio.findOne({ user: req.user._id });
+    // For testing: use hardcoded ID if no user in request
+    const userId = req.user._id ;
+
+    let portfolio = await Portfolio.findOne({ user: userId });
 
     // If no portfolio exists, create one
     if (!portfolio) {
       portfolio = new Portfolio({
-        user: req.user._id,
+        user: userId,
         stocks: [],
       });
     }
@@ -133,7 +138,7 @@ const getPortfolioPerformance = async (req, res) => {
 
 const updateHoldings = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user?._id;
     const { payload } = req.body; // [{ symbol, quantity, buyPrice }]
 
     console.log(req.body);
@@ -175,6 +180,94 @@ const updateHoldings = async (req, res) => {
     console.error(err);
     return res.status(500).json({ message: "Server error" });
   }
+  }
+
+
+const getPortfolioPrediction = async (req, res) => {
+  try {
+    const { days = 7, modelType = "lstm"} = req.query;
+    
+    // For testing without auth, allow passing userId
+    const id = req.user._id;
+
+    if (!id) {
+        return res.status(400).json({ message: "User ID required (auth disabled)" });
+    }
+
+    const portfolio = await Portfolio.findOne({ user: id });
+
+    if (!portfolio || !portfolio.stocks || portfolio.stocks.length === 0) {
+      return res.json({
+        currentTotal: 0,
+        predictedTotal: 0,
+        portfolio: [],
+      });
+    }
+
+    let currentTotal = 0;
+    let predictedTotal = 0;
+    const results = [];
+
+    // Process each stock
+    // Use Promise.all to fetch predictions in parallel
+    await Promise.all(
+      portfolio.stocks.map(async (stock) => {
+        try {
+          const prediction = await predictPrice(
+            stock.symbol,
+            Number(days),
+            modelType
+          );
+          
+          // Get the last predicted price (for the target day)
+          // prediction.predictions is an array of { date, price }
+          const lastPred = prediction.predictions[prediction.predictions.length - 1];
+          const predictedPrice = lastPred ? lastPred.price : stock.currentPrice;
+
+          const stockValue = stock.quantity * stock.currentPrice;
+          const predictedStockValue = stock.quantity * predictedPrice;
+
+          currentTotal += stockValue;
+          predictedTotal += predictedStockValue;
+
+          results.push({
+            symbol: stock.symbol,
+            quantity: stock.quantity,
+            currentPrice: stock.currentPrice,
+            predictedPrice: predictedPrice,
+            currentValue: stockValue,
+            predictedValue: predictedStockValue,
+            predictionData: prediction.predictions, // Include full trend
+          });
+        } catch (error) {
+          console.error(`Prediction failed for ${stock.symbol}:`, error.message);
+          // Fallback to current price if prediction fails
+          const stockValue = stock.quantity * stock.currentPrice;
+          currentTotal += stockValue;
+          predictedTotal += stockValue; // Assume no change on error
+
+          results.push({
+            symbol: stock.symbol,
+            quantity: stock.quantity,
+            currentPrice: stock.currentPrice,
+            predictedPrice: stock.currentPrice,
+            currentValue: stockValue,
+            predictedValue: stockValue,
+            error: "Prediction unavailable",
+          });
+        }
+      })
+    );
+
+    res.json({
+      currentTotal,
+      predictedTotal,
+      portfolio: results,
+    });
+  } catch (err) {
+    console.error("Portfolio prediction error:", err);
+    res.status(500).json({ message: "Error calculating portfolio prediction" });
+  }
 };
 
 module.exports = {
@@ -182,4 +275,5 @@ module.exports = {
   deletePortfolio,
   getPortfolioPerformance,
   updateHoldings,
+  getPortfolioPrediction,
 };
