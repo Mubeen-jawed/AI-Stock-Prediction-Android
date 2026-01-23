@@ -1,4 +1,4 @@
-export const API_URL = "http://192.168.100.18:4000";
+export const API_URL = "https://polite-jennine-mubeen-jawed-31cd2692.koyeb.app";
 // https://polite-jennine-mubeen-jawed-31cd2692.koyeb.app
 // http://192.168.1.108:4000
 // http://192.168.100.18:4000 mubeen

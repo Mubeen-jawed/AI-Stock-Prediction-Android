@@ -33,7 +33,7 @@ export default function StockDetailScreen({ navigation }) {
   const [chart, setChart] = useState(null);
   const [chartLoading, setChartLoading] = useState(false);
 
-  const [predictions, setPredictions] = useState(null);
+  // const [predictions, setPredictions] = useState(null);
   const [predictionsLoading, setPredictionsLoading] = useState(false);
 
   useEffect(() => {
@@ -135,95 +135,95 @@ export default function StockDetailScreen({ navigation }) {
     if (token && symbol) checkWatchlist();
   }, [token, symbol]);
 
-  useEffect(() => {
-    const fetchPredictions = async () => {
-      try {
-        setPredictionsLoading(false);
+  // useEffect(() => {
+  //   const fetchPredictions = async () => {
+  //     try {
+  //       setPredictionsLoading(false);
 
-        const res = await fetch(
-          `${API_URL}/predict/${symbol}?days=15&modelType=lstm`,
-          {
-            method: "POST",
-          }
-        );
-        const data = await res.json();
+  //       const res = await fetch(
+  //         `${API_URL}/predict/${symbol}?days=15&modelType=lstm`,
+  //         {
+  //           method: "POST",
+  //         }
+  //       );
+  //       const data = await res.json();
 
-        setPredictions(data);
-        // console.log("Predictions:", data);
-      } catch (err) {
-        console.log("Prediction fetch error:", err);
-      } finally {
-        setPredictionsLoading(false);
-      }
-    };
+  //       setPredictions(data);
+  //       // console.log("Predictions:", data);
+  //     } catch (err) {
+  //       console.log("Prediction fetch error:", err);
+  //     } finally {
+  //       setPredictionsLoading(false);
+  //     }
+  //   };
 
-    fetchPredictions();
-  });
+  //   fetchPredictions();
+  // });
 
   // console.log(predictions);
 
-  // const predictions = [
-  //   {
-  //     date: "2025-12-24",
-  //     price: 274.1451110839844,
-  //   },
-  //   {
-  //     date: "2025-12-25",
-  //     price: 273.7609558105469,
-  //   },
-  //   {
-  //     date: "2025-12-26",
-  //     price: 273.5689697265625,
-  //   },
-  //   {
-  //     date: "2025-12-27",
-  //     price: 273.494873046875,
-  //   },
-  //   {
-  //     date: "2025-12-28",
-  //     price: 273.49456787109375,
-  //   },
-  //   {
-  //     date: "2025-12-29",
-  //     price: 273.54132080078125,
-  //   },
-  //   {
-  //     date: "2025-12-30",
-  //     price: 273.6188659667969,
-  //   },
-  //   {
-  //     date: "2025-12-31",
-  //     price: 273.7171325683594,
-  //   },
-  //   {
-  //     date: "2026-01-01",
-  //     price: 273.8297424316406,
-  //   },
-  //   {
-  //     date: "2026-01-02",
-  //     price: 273.9524841308594,
-  //   },
-  //   {
-  //     date: "2026-01-03",
-  //     price: 274.0827331542969,
-  //   },
-  //   {
-  //     date: "2026-01-04",
-  //     price: 274.218505859375,
-  //   },
-  //   {
-  //     date: "2026-01-05",
-  //     price: 274.3583679199219,
-  //   },
-  //   {
-  //     date: "2026-01-06",
-  //     price: 274.5013427734375,
-  //   },
-  //   {
-  //     date: "2026-01-07",
-  //     price: 274.6465759277344,
-  //   },
-  // ];
+  const predictions = [
+    {
+      date: "2025-12-24",
+      price: 274.1451110839844,
+    },
+    {
+      date: "2025-12-25",
+      price: 273.7609558105469,
+    },
+    {
+      date: "2025-12-26",
+      price: 273.5689697265625,
+    },
+    {
+      date: "2025-12-27",
+      price: 273.494873046875,
+    },
+    {
+      date: "2025-12-28",
+      price: 273.49456787109375,
+    },
+    {
+      date: "2025-12-29",
+      price: 273.54132080078125,
+    },
+    {
+      date: "2025-12-30",
+      price: 273.6188659667969,
+    },
+    {
+      date: "2025-12-31",
+      price: 273.7171325683594,
+    },
+    {
+      date: "2026-01-01",
+      price: 273.8297424316406,
+    },
+    {
+      date: "2026-01-02",
+      price: 273.9524841308594,
+    },
+    {
+      date: "2026-01-03",
+      price: 274.0827331542969,
+    },
+    {
+      date: "2026-01-04",
+      price: 274.218505859375,
+    },
+    {
+      date: "2026-01-05",
+      price: 274.3583679199219,
+    },
+    {
+      date: "2026-01-06",
+      price: 274.5013427734375,
+    },
+    {
+      date: "2026-01-07",
+      price: 274.6465759277344,
+    },
+  ];
 
   const positive = stock?.change >= 0;
 
