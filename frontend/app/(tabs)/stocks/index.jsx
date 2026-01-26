@@ -7,7 +7,48 @@ import { fetchStocks } from "../../../data/stocks";
 import { useAuth } from "../../../context/AuthContext";
 import SkeletonLoader from "../../../components/SkeletonLoader";
 
+import apple from "../../../assets/images/stock-logos/apple.png";
+import microsoft from "../../../assets/images/stock-logos/microsoft.png";
+import nvidia from "../../../assets/images/stock-logos/nvidia.png";
+import tesla from "../../../assets/images/stock-logos/tesla.png";
+
 const TOP_TABS = ["All", "Hot", "Gainers", "Losers"];
+
+const GAINERS = [
+  {
+    logo: apple,
+    name: "Apple",
+    ticker: "AAPL",
+    price: "228.54",
+    changePercent: 2.31,
+    vol: "24.8B",
+  },
+  {
+    logo: nvidia,
+    name: "NVIDIA",
+    ticker: "NVDA",
+    price: "123.91",
+    changePercent: 1.12,
+    vol: "18.3B",
+  },
+  {
+    logo: tesla,
+    name: "Tesla",
+    ticker: "TSLA",
+    price: "254.02",
+    changePercent: 3.1,
+    vol: "12.4B",
+  },
+  {
+    logo: microsoft,
+    name: "Microsoft",
+    ticker: "MSFT",
+    price: "425.77",
+    changePercent: 0.48,
+    vol: "9.7B",
+  },
+];
+
 // Bybit shows: Spot / Derivatives / TradFi. For stocks we map close to that:
 
 export default function StocksScreen() {
@@ -24,6 +65,8 @@ export default function StocksScreen() {
     setRows(data);
     setLoading(false);
   }
+
+  // console.log("rows", rows);
 
   // useEffect(() => {
   //   fetchStocks({ topTab, subTab, q, token });
@@ -71,25 +114,32 @@ export default function StocksScreen() {
         {loading ? (
           <SkeletonLoader />
         ) : (
-          rows
-            .filter(
-              (s) =>
-                s.name &&
-                s.logo &&
-                s.symbol &&
-                typeof s.price === "number" &&
-                s.changePercent !== undefined
-            )
-            .map((s) => (
-              <StockRow
-                key={s.symbol}
-                logo={s.logo}
-                name={s.name}
-                ticker={s.symbol}
-                price={s.price.toLocaleString()}
-                changePercent={s.changePercent}
-              />
-            ))
+          <>
+            {GAINERS.map((s) => (
+              <StockRow key={s.ticker} {...s} />
+            ))}
+
+            {rows
+              .filter(
+                (s) =>
+                  s.name &&
+                  s.logo &&
+                  s.symbol &&
+                  typeof s.price === "number" &&
+                  s.changePercent !== undefined &&
+                  !GAINERS.some((g) => g.ticker === s.symbol)
+              )
+              .map((s) => (
+                <StockRow
+                  key={s.symbol}
+                  logo={s.logo}
+                  name={s.name}
+                  ticker={s.symbol}
+                  price={s.price.toLocaleString()}
+                  changePercent={s.changePercent}
+                />
+              ))}
+          </>
         )}
       </ScrollView>
     </View>

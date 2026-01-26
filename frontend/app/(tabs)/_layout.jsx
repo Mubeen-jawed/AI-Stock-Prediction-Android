@@ -1,8 +1,10 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { View } from "react-native";
+import { useRouter } from "expo-router";
 
 export default function TabsLayout() {
+  const router = useRouter();
   return (
     <Tabs
       sceneContainerStyle={{ backgroundColor: "#05060A" }}
@@ -25,6 +27,9 @@ export default function TabsLayout() {
     >
       <Tabs.Screen
         name="home"
+        onPress={() => {
+          router.push("/home");
+        }}
         options={{
           title: "Home",
           tabBarIcon: ({ color }) => (
@@ -34,6 +39,9 @@ export default function TabsLayout() {
       />
 
       <Tabs.Screen
+        onPress={() => {
+          router.push("/stocks");
+        }}
         name="stocks"
         options={{
           title: "Stocks",
@@ -44,6 +52,9 @@ export default function TabsLayout() {
       />
 
       <Tabs.Screen
+        onPress={() => {
+          router.push("/portfolio");
+        }}
         name="portfolio"
         options={{
           title: "Portfolio",
@@ -54,6 +65,9 @@ export default function TabsLayout() {
       />
 
       <Tabs.Screen
+        onPress={() => {
+          router.push("/news");
+        }}
         name="news"
         options={{
           title: "News",
@@ -64,6 +78,9 @@ export default function TabsLayout() {
       />
 
       <Tabs.Screen
+        onPress={() => {
+          router.push("/profile");
+        }}
         name="profile"
         options={{
           title: "Profile",

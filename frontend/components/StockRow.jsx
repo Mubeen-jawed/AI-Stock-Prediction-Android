@@ -5,6 +5,18 @@ export default function StockRow({ logo, name, price, changePercent, ticker }) {
   const up = changePercent >= 0;
   const router = useRouter();
 
+  // console.log(logo);
+
+  const getImageSource = (logo) => {
+    // Remote image (API URL)
+    if (typeof logo === "string") {
+      return { uri: logo.trim() };
+    }
+
+    // Local image (import / require)
+    return logo;
+  };
+
   return (
     <TouchableOpacity
       onPress={() => {
@@ -14,7 +26,7 @@ export default function StockRow({ logo, name, price, changePercent, ticker }) {
       key={name}
       style={styles.row}
     >
-      <Image source={logo} style={styles.logo} />
+      <Image source={getImageSource(logo)} style={styles.logo} />
       <View style={{ flex: 1 }}>
         <Text style={styles.name}>
           {ticker} <Text style={styles.ticker}>/ USD</Text>

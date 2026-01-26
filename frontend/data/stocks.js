@@ -1,6 +1,6 @@
 // Minimal mock + drop-in API adapter.
 // Later: replace fetchStocks(...) with a real HTTP call.
-import { API_URL } from "../config/config";
+import { API_URL } from "../app/config/config.js";
 import { stocksData } from "./stocksData.js";
 
 // const SAMPLE = [
@@ -69,7 +69,7 @@ let cachedStocks = null;
 export async function fetchStocks({ topTab = "Favorites", q = "", token }) {
   // Load real backend data if not loaded yet
   if (!cachedStocks) {
-    const res = await fetch(`${API_URL}/api/stocks?exchange=US`, {
+    const res = await fetch(`${API_URL}/api/stocks`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const result = await res.json();

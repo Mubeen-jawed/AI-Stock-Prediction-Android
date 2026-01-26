@@ -1,0 +1,3 @@
+node_modules.git.env.venv;
+__pycache__.pyc;
+npm - debug.log;

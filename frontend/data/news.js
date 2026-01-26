@@ -44,7 +44,7 @@
 //     image: "https://i.ibb.co/tb3dNFb/ripple.jpg",
 //   },
 // ];
-import { API_URL } from "../config/config";
+import { API_URL } from "../app/config/config";
 
 export async function fetchNews(token) {
   const res = await fetch(`${API_URL}/api/news`, {

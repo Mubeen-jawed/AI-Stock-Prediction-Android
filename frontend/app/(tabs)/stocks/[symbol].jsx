@@ -10,7 +10,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useAuth } from "../../../context/AuthContext";
-import { API_URL } from "../../../config/config";
+import { API_URL } from "../../config/config";
 import Loader from "../../../components/Loader";
 import StockCandleChart from "../../../components/StockCandleChart";
 import PredictiveGraph from "../../../components/PredictiveGraph";
@@ -312,8 +312,17 @@ export default function StockDetailScreen({ navigation }) {
     return "Extremely bullish. Strong buy with high return potential.";
   };
 
-  const predictChange =
-    (predictions[0].price.toFixed(2) / stock.open) * 100 - 100;
+  const predictionBreakdown =
+    predictions !== null && predictions.length > 0
+      ? predictions?.map((prediction, index) => (
+          <View style={styles.dayGridItem} key={index}>
+            <Text style={styles.value}>{prediction.date}</Text>
+            <Text style={styles.value}>${prediction.price.toFixed(2)}</Text>
+          </View>
+        ))
+      : null;
+
+  const predictChange = 0;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -489,9 +498,9 @@ export default function StockDetailScreen({ navigation }) {
               </View>
               <View style={styles.gridItem}>
                 <Text style={styles.label}>After 15 days (Expected)</Text>
-                <Text style={styles.value}>
+                {/* <Text style={styles.value}>
                   ${predictions[0].price.toFixed(2)}
-                </Text>
+                </Text> */}
               </View>
               <View>
                 <Text style={styles.label}>Percent (%)</Text>
@@ -524,14 +533,7 @@ export default function StockDetailScreen({ navigation }) {
                 <Text style={styles.dayLabel}>Stock Price</Text>
               </View>
 
-              {predictions.map((prediction, index) => (
-                <View style={styles.dayGridItem} key={index}>
-                  <Text style={styles.value}>{prediction.date}</Text>
-                  <Text style={styles.value}>
-                    ${prediction.price.toFixed(2)}
-                  </Text>
-                </View>
-              ))}
+              {predictionBreakdown}
             </View>
           </View>
 

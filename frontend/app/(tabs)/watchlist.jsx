@@ -5,7 +5,7 @@ import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import StockRow from "../../components/StockRow";
 import { useAuth } from "../../context/AuthContext";
 import SkeletonLoader from "../../components/SkeletonLoader";
-import { API_URL } from "../../config/config";
+import { API_URL } from "../config/config";
 
 export default function StocksScreen() {
   const [q, setQ] = useState("");

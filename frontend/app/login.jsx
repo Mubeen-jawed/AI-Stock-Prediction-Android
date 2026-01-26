@@ -15,7 +15,7 @@ import { StatusBar } from "expo-status-bar";
 import { Ionicons, MaterialIcons, FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useAuth } from "../context/AuthContext";
-import { API_URL } from "../config/config";
+import { API_URL } from "./config/config";
 
 export default function Login() {
   const router = useRouter();

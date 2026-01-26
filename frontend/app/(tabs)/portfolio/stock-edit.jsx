@@ -13,7 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useData } from "../../../context/DataContext";
 import { useAuth } from "../../../context/AuthContext";
-import { API_URL } from "../../../config/config";
+import { API_URL } from "../../config/config";
 import ConfirmModal from "../../../components/ConfirmModal";
 
 // Bybit-ish theme
@@ -55,6 +55,7 @@ export default function EditPortfolioScreen() {
 
     setRows(
       apiData.map((r) => ({
+        logo: r.logo,
         symbol: r.symbol,
         name: r.name ?? "",
         quantity: String(r.quantity ?? ""),
@@ -63,6 +64,8 @@ export default function EditPortfolioScreen() {
       }))
     );
   }, [apiData]);
+
+  // console.log(apiData);
 
   const handleSave = async () => {
     try {
@@ -139,6 +142,8 @@ export default function EditPortfolioScreen() {
       <View key={r.symbol} style={styles.rowCard}>
         <View style={styles.rowTop}>
           <View style={styles.stockCol}>
+            {/* <Image source={getImageSource(logo)} style={styles.logo} /> */}
+
             <Text style={styles.symbol}>{r.symbol}</Text>
             <Text style={styles.name} numberOfLines={1}>
               {r.name}

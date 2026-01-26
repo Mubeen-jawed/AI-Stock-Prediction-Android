@@ -233,7 +233,7 @@ export default function AddStockScreen() {
               <Text
                 style={[styles.fieldPrefix, { marginLeft: 6, marginTop: 6 }]}
               >
-                Current price: ${selected.currentPrice}
+                Current price: ${selected?.currentPrice}
               </Text>
 
               <View>
