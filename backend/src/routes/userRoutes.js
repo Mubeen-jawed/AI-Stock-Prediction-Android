@@ -20,7 +20,7 @@ router.get("/get-watchlist", protect, getWatchlist);
 // Protected route example
 router.get("/profile", protect, (req, res) => {
   const user = {
-    id: req.user._id,
+    id: req.user?._id,
     name: req.user.name,
     email: req.user.email,
     phone: req.user.phone || null,

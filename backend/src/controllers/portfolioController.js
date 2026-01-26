@@ -15,7 +15,7 @@ const createPortfolio = async (req, res) => {
     }
 
     // Use static ID for now as requested
-    const userId = req.user._id || new mongoose.Types.ObjectId("68f7af8fec413749bb1f58e8");
+    const userId = req.user?._id || new mongoose.Types.ObjectId("68f7af8fec413749bb1f58e8");
 
     let portfolio = await Portfolio.findOne({ user: userId });
 
@@ -59,7 +59,7 @@ const createPortfolio = async (req, res) => {
 // Get all portfolios of a user
 //  const getPortfolios = async (req, res) => {
 //   try {
-//     const portfolios = await Portfolio.find({ user: req.user._id });
+//     const portfolios = await Portfolio.find({ user: req.user?._id });
 //     res.status(200).json(portfolios);
 //   } catch (error) {
 //     res.status(500).json({ message: error.message });
@@ -72,7 +72,7 @@ const deletePortfolio = async (req, res) => {
   try {
     const { symbol } = req.params;
 
-    const userId = req.user._id || new mongoose.Types.ObjectId("68f7af8fec413749bb1f58e8");
+    const userId = req.user?._id || new mongoose.Types.ObjectId("68f7af8fec413749bb1f58e8");
     const portfolio = await Portfolio.findOne({ user: userId });
     if (!portfolio) {
       return res.status(404).json({ message: "Portfolio not found" });
@@ -102,7 +102,7 @@ const deletePortfolio = async (req, res) => {
 const getPortfolioPerformance = async (req, res) => {
   try {
     // Static ID for now as requested
-    const userId = req.user._id ||  new mongoose.Types.ObjectId("68f7af8fec413749bb1f58e8");
+    const userId = req.user?._id ||  new mongoose.Types.ObjectId("68f7af8fec413749bb1f58e8");
     const portfolio = await Portfolio.findOne({ user: userId });
 
     if (!portfolio || !portfolio.stocks || portfolio.stocks.length === 0) {
@@ -198,7 +198,7 @@ const getPortfolioPerformance = async (req, res) => {
 const updateHoldings = async (req, res) => {
   try {
     // Use static ID for now as requested
-    const userId = req.user._id || new mongoose.Types.ObjectId("68f7af8fec413749bb1f58e8");
+    const userId = req.user?._id || new mongoose.Types.ObjectId("68f7af8fec413749bb1f58e8");
     const { payload } = req.body; // [{ symbol, quantity, buyPrice }]
 
     if (!Array.isArray(payload) || payload.length === 0) {
@@ -246,8 +246,8 @@ const getPortfolioPrediction = async (req, res) => {
     const { days = 7, modelType = "lstm"} = req.query;
     
     // Use static ID for now as requested
-    const id = req.user._id || new mongoose.Types.ObjectId("68f7af8fec413749bb1f58e8");
-    // const id = req.user._id;
+    const id = req.user?._id || new mongoose.Types.ObjectId("68f7af8fec413749bb1f58e8");
+    // const id = req.user?._id;
 
     if (!id) {
         return res.status(400).json({ message: "User ID required (auth disabled)" });
