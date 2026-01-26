@@ -51,44 +51,110 @@ async function sendRecordsToPython(symbol, records) {
     }
 }
 
+/**
+ * Gets the last recorded date from the local Node-side CSV.
+ */
+function getLastRecordedDateLocal(symbol) {
+    const csvPath = path.join(__dirname, `../data/kmi30_3y/${symbol}.csv`);
+    if (!fs.existsSync(csvPath)) return null;
+
+    try {
+        const content = fs.readFileSync(csvPath, 'utf8').trim();
+        const lines = content.split('\n');
+        if (lines.length < 2) return null; // Only header or empty
+
+        const lastLine = lines[lines.length - 1];
+        const dateStr = lastLine.split(',')[0];
+        return dateStr ? new Date(dateStr) : null;
+    } catch (e) {
+        console.error(`Error reading local CSV for ${symbol}:`, e.message);
+        return null;
+    }
+}
+
+/**
+ * Appends new stock records to the local Node-side CSV files.
+ */
+async function appendRecordsToLocalCSV(symbol, records) {
+    const csvDir = path.join(__dirname, '../data/kmi30_3y');
+    const filePath = path.join(csvDir, `${symbol}.csv`);
+
+    if (!fs.existsSync(filePath)) {
+        console.warn(`Local CSV for ${symbol} not found. Skipping local update.`);
+        return;
+    }
+
+    const lines = records.map(r => {
+        return `${r.timestamp},${symbol},${r.open},${r.high},${r.low},${r.close},${r.volume}`;
+    }).join('\n');
+
+    try {
+        fs.appendFileSync(filePath, '\n' + lines);
+    } catch (error) {
+        console.error(`Error writing to local CSV for ${symbol}:`, error.message);
+    }
+}
+
 async function updateKMI30Data() {
-    console.log(`Starting incremental update (API-based) for ${KMI30_STOCKS.length} stocks...`);
-    console.log(`Python API Target: ${PYTHON_API_URL}`);
+    console.log(`Starting ROBUST incremental update for ${KMI30_STOCKS.length} stocks...`);
+    console.log(`Synchronization: Node CSVs <--> Python API`);
 
     for (const symbol of KMI30_STOCKS) {
         try {
-            const lastDate = await getLastRecordedDateRemote(symbol);
-            console.log(`\nSymbol: ${symbol} | Last Recorded on Python: ${lastDate ? lastDate.toISOString() : 'None'}`);
+            // 1. Check state of both systems
+            const pythonLastDate = await getLastRecordedDateRemote(symbol);
+            const nodeLastDate = getLastRecordedDateLocal(symbol);
+            
+            console.log(`\n--- ${symbol} ---`);
+            console.log(`Python Last Date: ${pythonLastDate ? pythonLastDate.toISOString() : 'None'}`);
+            console.log(`Node Last Date:   ${nodeLastDate ? nodeLastDate.toISOString() : 'None'}`);
 
-            const range = lastDate ? '1mo' : '3y';
+            // 2. Fetch data based on the OLDEST system to fill all gaps
+            const oldestDate = (pythonLastDate && nodeLastDate) 
+                ? (pythonLastDate < nodeLastDate ? pythonLastDate : nodeLastDate)
+                : (pythonLastDate || nodeLastDate);
+
+            const range = oldestDate ? '1mo' : '3y';
             const data = await getPSXHistory(symbol, range, '1d');
 
             if (data && data.history && data.history.length > 0) {
-                const newRecords = data.history.filter(row => {
-                    const rowDate = new Date(row.timestamp);
-                    return lastDate ? rowDate > lastDate : true;
-                });
+                // Filter specifically for Python
+                const forPython = data.history.filter(r => 
+                    !pythonLastDate || new Date(r.timestamp) > pythonLastDate
+                );
+                
+                // Filter specifically for Node
+                const forNode = data.history.filter(r => 
+                    !nodeLastDate || new Date(r.timestamp) > nodeLastDate
+                );
 
-                if (newRecords.length > 0) {
-                    console.log(`Found ${newRecords.length} new records for ${symbol}. Sending to Python...`);
-                    
-                    const result = await sendRecordsToPython(symbol, newRecords);
-                    console.log(`Successfully updated ${symbol} on Python side:`, result.message);
-                } else {
-                    console.log(`No new data found for ${symbol}.`);
+                // 3. Update Python if needed
+                if (forPython.length > 0) {
+                    console.log(`Updating Python with ${forPython.length} records...`);
+                    await sendRecordsToPython(symbol, forPython);
+                }
+
+                // 4. Update Node if needed
+                if (forNode.length > 0) {
+                    console.log(`Updating Node CSV with ${forNode.length} records...`);
+                    await appendRecordsToLocalCSV(symbol, forNode);
+                }
+
+                if (forPython.length === 0 && forNode.length === 0) {
+                    console.log(`Everything up to date.`);
                 }
             } else {
-                console.warn(`No history returned for ${symbol}.`);
+                console.warn(`No price history found.`);
             }
         } catch (error) {
-            console.error(`Error updating ${symbol}:`, error.message);
+            console.error(`Failed to update ${symbol}:`, error.message);
         }
 
-        // Delay to avoid Yahoo Finance rate limiting
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Throttle for API rate limits
+        await new Promise(resolve => setTimeout(resolve, 800));
     }
 
-    console.log('\nIncremental update via API complete.');
+    console.log('\nRobust synchronization complete.');
 }
 
 updateKMI30Data();

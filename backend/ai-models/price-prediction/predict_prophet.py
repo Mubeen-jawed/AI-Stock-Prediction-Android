@@ -2,21 +2,25 @@ import pandas as pd
 from prophet import Prophet
 import sys, json
 import os
+import joblib
 
 def predict_prophet(symbol, days=7):
     BASE_PATH = os.path.dirname(os.path.abspath(__file__))
-    DATA_PATH = os.path.join(BASE_PATH, "data")
-    data_file = os.path.join(DATA_PATH, f"{symbol}.csv")
-    df = pd.read_csv(data_file)
+    MODEL_PATH = os.path.join(BASE_PATH, "models")
+    model_file = os.path.join(MODEL_PATH, f"{symbol}_prophet.pkl")
+    
+    if not os.path.exists(model_file):
+        # Fallback error or could trigger training (sticking to error/message for now)
+        print(json.dumps({"error": f"Model not found for {symbol}. Please train it first."}))
+        return
 
-    # Example: If your CSV has dates like 2025-12-12
-    df['ds'] = pd.to_datetime(df['Date'], errors='coerce')
-    df['y'] = pd.to_numeric(df['Close'], errors='coerce')
-    df.dropna(subset=['ds', 'y'], inplace=True)  # drop rows where conversion failed
-    model = Prophet(daily_seasonality=True)
-    model.fit(df[['ds','y']])
+    # Load model
+    model = joblib.load(model_file)
 
     future = model.make_future_dataframe(periods=days)
+    # Filter future to only include the *next* days, not the whole history
+    # Correction: predict() returns the whole history + future. We just tail it.
+    
     forecast = model.predict(future)
 
     # Only print JSON at the end
@@ -28,6 +32,10 @@ def predict_prophet(symbol, days=7):
    
 
 if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print(json.dumps({"error": "No symbol provided"}))
+        sys.exit(1)
+        
     symbol = sys.argv[1]
     days = int(sys.argv[2]) if len(sys.argv) > 2 else 7
     predict_prophet(symbol, days)

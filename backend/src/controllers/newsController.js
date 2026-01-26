@@ -10,7 +10,7 @@ function formatDate(date) {
 
 /**
  * GET /api/stocks/news
- * Optional: ?symbol=AAPL
+ * Optional: ?symbol=PPL
  * Returns a list of max 15 news items
  */
 exports.getStockNewsList = async (req, res) => {
@@ -62,7 +62,7 @@ exports.getStockNewsList = async (req, res) => {
 
 /**
  * GET /api/stocks/news/:id
- * Optional: ?symbol=AAPL
+ * Optional: ?symbol=PPL
  * Returns full article data for a single news item
  */
 exports.getStockNewsDetail = async (req, res) => {

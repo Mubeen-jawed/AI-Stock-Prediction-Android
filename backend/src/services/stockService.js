@@ -53,7 +53,7 @@ const getAllSharesList = async (exchange = "US") => {
   }
 };
 
-async function fetchStockData(ticker = "AAPL") {
+async function fetchStockData(ticker = "PPL") {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=60d`;
 
   const response = await axios.get(url);
@@ -213,8 +213,7 @@ const fetchPSXData = async () => {
     range: [0, 500],
   };
 
-  const res = await fetch(url, {
-    method: "POST",
+  const res = await axios.post(url, body, {
     headers: {
       "Content-Type": "application/json",
       "User-Agent": "Mozilla/5.0",
@@ -222,17 +221,9 @@ const fetchPSXData = async () => {
       Origin: "https://www.tradingview.com",
       Referer: "https://www.tradingview.com/",
     },
-    body: JSON.stringify(body),
   });
 
-  const text = await res.text();
-
-  if (!text.startsWith("{")) {
-    console.error("Non-JSON response:", text);
-    return [];
-  }
-
-  const json = JSON.parse(text);
+  const json = res.data;
   // Format current time in Pakistan Standard Time (UTC+5)
   const pktTime =
     new Date(new Date().getTime() + 5 * 60 * 60 * 1000)
@@ -275,7 +266,6 @@ const getPSXHistory = async (symbol, range, interval) => {
     });
 
     const result = response.data?.chart?.result?.[0];
-    console.log(result);
     if (!result) {
       throw new Error("No data found in Yahoo Finance response");
     }
@@ -371,11 +361,9 @@ async function fetchSingleStock(symbol) {
 
   try {
     const [tvRes, finnhubRes, newsRes] = await Promise.all([
-      fetch(tvUrl, {
-        method: "POST",
+      axios.post(tvUrl, tvBody, {
         headers: { "Content-Type": "application/json", "User-Agent": "Mozilla/5.0" },
-        body: JSON.stringify(tvBody),
-      }).then(r => r.json()),
+      }).then(r => r.data),
       axios.get(`${FINNHUB_BASE}/stock/profile2`, {
         params: { symbol: symbolUpper, token: process.env.FINNHUB_API_KEY }
       }).catch(() => ({ data: {} })),

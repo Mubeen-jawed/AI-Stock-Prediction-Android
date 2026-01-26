@@ -217,38 +217,98 @@ async def predict(req: PredictionRequest):
     
     try:
         if model_type == "lstm":
+            # Load model and scaler
             if symbol not in loaded_models:
                 loaded_models[symbol] = load_model(f"{MODEL_PATH}/{symbol}.keras")
                 loaded_scalers[symbol] = joblib.load(f"{MODEL_PATH}/{symbol}_scaler.pkl")
             model = loaded_models[symbol]
             scaler = loaded_scalers[symbol]
             
+            # Detect model feature count
+            # model.input_shape is usually (None, 60, N)
+            num_features = model.input_shape[-1]
+            
             # Load latest data
             df = pd.read_csv(f"data/{symbol}.csv", parse_dates=['Date'])
-            prices = df['Close'].values.reshape(-1,1)
-            scaled = scaler.transform(prices)
-            X_input = scaled[-lookback:].reshape(1,lookback,1)
+            if "Volume" not in df.columns:
+                 df["Volume"] = 0
             
+            def calculate_indicators(input_df, feature_count):
+                temp_df = input_df.copy()
+                temp_df['Close'] = pd.to_numeric(temp_df['Close'], errors='coerce')
+                
+                import ta
+                # Basic 3 features: Close, RSI, SMA
+                temp_df['RSI'] = ta.momentum.rsi(temp_df['Close'], window=14)
+                temp_df['SMA'] = ta.trend.sma_indicator(temp_df['Close'], window=20)
+                
+                if feature_count == 8:
+                    temp_df['Volume'] = pd.to_numeric(temp_df['Volume'], errors='coerce')
+                    # MACD
+                    macd = ta.trend.MACD(temp_df['Close'])
+                    temp_df['MACD'] = macd.macd()
+                    temp_df['MACD_SIGNAL'] = macd.macd_signal()
+                    # Bollinger Bands
+                    bollinger = ta.volatility.BollingerBands(temp_df['Close'], window=20, window_dev=2)
+                    temp_df['BB_HIGH'] = bollinger.bollinger_hband()
+                    temp_df['BB_LOW'] = bollinger.bollinger_lband()
+                    
+                    flist = ['Close', 'Volume', 'RSI', 'SMA', 'MACD', 'MACD_SIGNAL', 'BB_HIGH', 'BB_LOW']
+                else:
+                    flist = ['Close', 'RSI', 'SMA']
+                
+                temp_df.dropna(inplace=True)
+                return temp_df, flist
+
+            # Prediction Loop
             predictions = []
             last_date = df['Date'].iloc[-1]
+            working_df = df.copy() 
             
-            while len(predictions) < days:
+            for _ in range(days):
+                # Recalculate indicators
+                try:
+                    current_features_df, feature_list = calculate_indicators(working_df, num_features)
+                except Exception:
+                    break 
+
+                data_values = current_features_df[feature_list].values
+                if len(data_values) < lookback:
+                    break
+
+                # Scale
+                scaled_data = scaler.transform(data_values)
+                X_input = scaled_data[-lookback:].reshape(1, lookback, num_features)
+                
+                # Predict
+                pred_scaled_close = model.predict(X_input, verbose=0)[0][0]
+                
+                # Inverse Transform
+                placeholder = np.zeros((1, num_features))
+                placeholder[0, 0] = pred_scaled_close
+                pred_price = scaler.inverse_transform(placeholder)[0][0]
+                
+                # Next Date
                 last_date += timedelta(days=1)
-                if last_date.weekday() >= 5:  # 5 = Saturday, 6 = Sunday
-                    continue
-                    
-                pred_scaled = model.predict(X_input)
-                pred_price = scaler.inverse_transform(pred_scaled)[0][0]
+                while last_date.weekday() >= 5: 
+                     last_date += timedelta(days=1)
                 
                 predictions.append({
                     "date": last_date.strftime("%Y-%m-%d"), 
                     "price": float(pred_price)
                 })
                 
-                # Update input sequence for the next prediction
-                X_input = np.concatenate((X_input[:,1:,:], pred_scaled.reshape(1,1,1)), axis=1)
+                # Update working dataframe for next step
+                last_row = working_df.iloc[-1]
+                new_row = {
+                    "Date": last_date,
+                    "Close": pred_price,
+                    "Volume": last_row["Volume"],
+                    "Open": pred_price, "High": pred_price, "Low": pred_price, "Symbol": last_row.get("Symbol", symbol)
+                }
+                working_df = pd.concat([working_df, pd.DataFrame([new_row])], ignore_index=True)
             
-            return {"symbol": symbol, "model": "lstm", "predictions": predictions}
+            return {"symbol": symbol, "model": f"lstm_{num_features}f", "predictions": predictions}
         
         elif model_type == "prophet":
             if symbol not in loaded_prophet:

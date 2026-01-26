@@ -10,7 +10,7 @@ const {
 
 const router = express.Router();
 
-router.get("/", protect, getPortfolioPerformance);
+router.get("/", getPortfolioPerformance);
 // router.post("/", protect, createPortfolio);
 router.post("/", createPortfolio);
 router.delete("/:symbol", protect, deletePortfolio);
