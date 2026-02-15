@@ -23,6 +23,7 @@ export default function StocksScreen() {
     const data = await fetchStocks({ topTab, q, token });
     setRows(data);
     setLoading(false);
+    // console.log("data", data);
   }
 
   // useEffect(() => {
@@ -72,14 +73,14 @@ export default function StocksScreen() {
           <SkeletonLoader />
         ) : (
           rows
-            .filter(
-              (s) =>
-                s.name &&
-                s.logo &&
-                s.symbol &&
-                typeof s.price === "number" &&
-                s.changePercent !== undefined
-            )
+            // .filter(
+            //   (s) =>
+            //     s.name &&
+            //     s.logo &&
+            //     s.symbol &&
+            //     typeof s.price === "number" &&
+            //     s.changePercent !== undefined,
+            // )
             .map((s) => (
               <StockRow
                 key={s.symbol}
@@ -88,6 +89,10 @@ export default function StocksScreen() {
                 ticker={s.symbol}
                 price={s.price.toLocaleString()}
                 changePercent={s.changePercent}
+                open={s.open}
+                high={s.high}
+                low={s.low}
+                volume={s.volume}
               />
             ))
         )}

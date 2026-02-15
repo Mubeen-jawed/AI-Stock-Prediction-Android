@@ -18,7 +18,7 @@ const getStockCandles = async (req, res) => {
   try {
     const data = await getCandlesTwelveData(
       symbol.toUpperCase(),
-      range || "1M"
+      range || "1M",
     );
     return res.json(data);
   } catch (err) {
@@ -80,7 +80,7 @@ const getStocksList = async (req, res) => {
           price: quote?.currentPrice ?? null,
           changePercent: quote?.percentChange ?? null,
         };
-      })
+      }),
     );
 
     // 4. Collect successful results
@@ -92,7 +92,7 @@ const getStocksList = async (req, res) => {
         const { symbol } = limited[idx];
         console.log(
           `Error fetching for ${symbol}:`,
-          r.reason?.message || r.reason
+          r.reason?.message || r.reason,
         );
       }
     });
@@ -117,12 +117,31 @@ let psxCache = {
   data: [],
 };
 
+let kse30Cache = { lastUpdated: 0, data: [] };
+
+// Get only KSE-30 stocks
+const getKSE30Stocks = async (req, res) => {
+  const now = Date.now();
+  try {
+    if (!kse30Cache.data.length || now - kse30Cache.lastUpdated > CACHE_TTL) {
+      console.log("Fetching fresh KSE-30 data...");
+      const data = await fetchPSXData(true);
+      kse30Cache = { lastUpdated: now, data };
+    }
+    res.json(kse30Cache.data);
+  } catch (err) {
+    console.error("Error in getKSE30Stocks:", err.message);
+    res.status(500).json({ error: "Failed to fetch KSE-30 data" });
+  }
+};
+
+// Get all PSX stocks
 const getPSXStocks = async (req, res) => {
   const now = Date.now();
   try {
-    if (!psxCache.data.length || now - psxCache.lastUpdated > 5000) {
+    if (!psxCache.data.length || now - psxCache.lastUpdated > CACHE_TTL) {
       console.log("Fetching fresh PSX data...");
-      const data = await fetchPSXData();
+      const data = await fetchPSXData(false);
       psxCache = { lastUpdated: now, data };
     }
     res.json(psxCache.data);
@@ -132,6 +151,7 @@ const getPSXStocks = async (req, res) => {
   }
 };
 
+// Alternative: Filter from existing cache (faster but uses cached data)
 const getSinglePSXStock = async (req, res) => {
   const symbol = req.params.symbol.toUpperCase();
   try {
@@ -144,14 +164,59 @@ const getSinglePSXStock = async (req, res) => {
   }
 };
 
+const VALID_RANGES = [
+  "1d",
+  "5d",
+  "1mo",
+  "3mo",
+  "6mo",
+  "1y",
+  "2y",
+  "5y",
+  "10y",
+  "ytd",
+  "max",
+];
+const VALID_INTERVALS = [
+  "1m",
+  "2m",
+  "5m",
+  "15m",
+  "30m",
+  "60m",
+  "90m",
+  "1h",
+  "1d",
+  "5d",
+  "1wk",
+  "1mo",
+  "3mo",
+];
 
 const getPSXStockHistory = async (req, res) => {
   const { symbol } = req.params;
-  const { range, interval } = req.query;
+  const { range = "1mo", interval = "1d" } = req.query;
+
+  // Validate inputs
+  if (!VALID_RANGES.includes(range)) {
+    return res.status(400).json({
+      error: "Invalid range",
+      validRanges: VALID_RANGES,
+    });
+  }
+
+  if (!VALID_INTERVALS.includes(interval)) {
+    return res.status(400).json({
+      error: "Invalid interval",
+      validIntervals: VALID_INTERVALS,
+    });
+  }
+
   try {
     const data = await getPSXHistory(symbol, range, interval);
     res.json(data);
   } catch (err) {
+    console.error("Error in getPSXStockHistory:", err.message);
     res.status(500).json({ error: err.message });
   }
 };
@@ -163,4 +228,5 @@ module.exports = {
   getPSXStocks,
   getSinglePSXStock,
   getPSXStockHistory,
+  getKSE30Stocks,
 };

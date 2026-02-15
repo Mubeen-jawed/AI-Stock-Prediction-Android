@@ -13,45 +13,41 @@ import Loader from "../../components/Loader";
 import { fetchProfile } from "../../data/profile";
 import { fetchNews } from "../../data/news";
 
-import apple from "../../assets/images/stock-logos/apple.png";
-import microsoft from "../../assets/images/stock-logos/microsoft.png";
-import nvidia from "../../assets/images/stock-logos/nvidia.png";
-import tesla from "../../assets/images/stock-logos/tesla.png";
+import engro from "../../assets/images/stock-logos/engro.png";
+import lucky from "../../assets/images/stock-logos/lucky.png";
+import ogdc from "../../assets/images/stock-logos/odgc.png";
+import meezan from "../../assets/images/stock-logos/meezan.png";
 
 import { useAuth } from "../../context/AuthContext";
 
 const GAINERS = [
   {
-    logo: apple,
-    name: "Apple",
-    ticker: "AAPL",
-    price: "228.54",
-    changePercent: 2.31,
-    vol: "24.8B",
+    logo: "engro.com",
+    name: "Engro Corporation",
+    ticker: "ENGRO",
+    price: "295.40",
+    vol: "6.2M",
   },
   {
-    logo: nvidia,
-    name: "NVIDIA",
-    ticker: "NVDA",
-    price: "123.91",
-    changePercent: 1.12,
-    vol: "18.3B",
+    logo: "lucky-cement.com",
+    name: "Lucky Cement",
+    ticker: "LUCK",
+    price: "720.10",
+    vol: "1.8M",
   },
   {
-    logo: tesla,
-    name: "Tesla",
-    ticker: "TSLA",
-    price: "254.02",
-    changePercent: 3.1,
-    vol: "12.4B",
+    logo: "ogdcl.com",
+    name: "Oil & Gas Development Company",
+    ticker: "OGDC",
+    price: "142.75",
+    vol: "12.4M",
   },
   {
-    logo: microsoft,
-    name: "Microsoft",
-    ticker: "MSFT",
-    price: "425.77",
-    changePercent: 0.48,
-    vol: "9.7B",
+    logo: "meezanbank.com",
+    name: "Meezan Bank",
+    ticker: "MEBL",
+    price: "215.60",
+    vol: "3.1M",
   },
 ];
 
@@ -110,7 +106,7 @@ export default function Home() {
               <Text style={styles.userName}> {user?.name || "Guest"} </Text>
             </Text>
 
-            <PromoCard title="Deposit $100 and get $20 bonus" />
+            <PromoCard title="Enjoy Your Financial Literacy With Us" />
 
             {/* Two promo chips row */}
             {/* <View style={styles.cardRow}>
@@ -125,14 +121,24 @@ export default function Home() {
         </View> */}
 
             {/* Tabs like Bybit (top + sub) */}
-            <SegmentTabs
-              tabs={["Watchlist", "Top", "New", "Gainers", "Losers", "Volume"]}
-              active={topTab}
-              onChange={setTopTab}
-            />
 
             {/* Stock list (gainers sample) */}
             <View style={styles.listCard}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                }}
+              >
+                <Text style={{ color: "#e8eaed", fontWeight: "800" }}>
+                  KMI 30
+                </Text>
+                <Text style={{ color: "#9aa0a6", fontWeight: "700" }}>
+                  {" "}
+                  Stocks
+                </Text>
+              </View>
               {GAINERS.map((s) => (
                 <StockRow key={s.ticker} {...s} />
               ))}

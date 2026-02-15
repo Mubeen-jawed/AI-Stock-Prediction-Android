@@ -15,7 +15,7 @@ const createPortfolio = async (req, res) => {
     }
 
     // For testing: use hardcoded ID if no user in request
-    const userId = req.user._id ;
+    const userId = req.user._id;
 
     let portfolio = await Portfolio.findOne({ user: userId });
 
@@ -29,7 +29,7 @@ const createPortfolio = async (req, res) => {
 
     stocks.forEach((incoming) => {
       const existing = portfolio.stocks.find(
-        (s) => s.symbol === incoming.symbol
+        (s) => s.symbol === incoming.symbol,
       );
 
       if (existing) {
@@ -80,7 +80,7 @@ const deletePortfolio = async (req, res) => {
     const before = portfolio.stocks.length;
 
     portfolio.stocks = portfolio.stocks.filter(
-      (s) => (s.symbol || "").toUpperCase() !== String(symbol).toUpperCase()
+      (s) => (s.symbol || "").toUpperCase() !== String(symbol).toUpperCase(),
     );
 
     if (portfolio.stocks.length === before) {
@@ -99,9 +99,12 @@ const deletePortfolio = async (req, res) => {
 };
 
 const getPortfolioPerformance = async (req, res) => {
+  const id = new mongoose.Types.ObjectId("691c5a7e4f4c587be5601d38");
+
   try {
     // 1) Get portfolio from DB for this user
-    const portfolio = await Portfolio.findOne({ user: req.user._id });
+
+    const portfolio = await Portfolio.findOne({ user: id });
 
     if (!portfolio || !portfolio.stocks || portfolio.stocks.length === 0) {
       return res.json({ portfolio: [] });
@@ -169,7 +172,7 @@ const updateHoldings = async (req, res) => {
     const updated = await Portfolio.findOneAndUpdate(
       { user: userId },
       { $set: setObj },
-      { new: true, arrayFilters }
+      { new: true, arrayFilters },
     );
 
     if (!updated)
@@ -180,18 +183,19 @@ const updateHoldings = async (req, res) => {
     console.error(err);
     return res.status(500).json({ message: "Server error" });
   }
-  }
-
+};
 
 const getPortfolioPrediction = async (req, res) => {
   try {
-    const { days = 7, modelType = "lstm"} = req.query;
-    
+    const { days = 7, modelType = "lstm" } = req.query;
+
     // For testing without auth, allow passing userId
-    const id = req.user._id;
+    const id = new mongoose.Types.ObjectId("691c5a7e4f4c587be5601d38");
 
     if (!id) {
-        return res.status(400).json({ message: "User ID required (auth disabled)" });
+      return res
+        .status(400)
+        .json({ message: "User ID required (auth disabled)" });
     }
 
     const portfolio = await Portfolio.findOne({ user: id });
@@ -216,12 +220,13 @@ const getPortfolioPrediction = async (req, res) => {
           const prediction = await predictPrice(
             stock.symbol,
             Number(days),
-            modelType
+            modelType,
           );
-          
+
           // Get the last predicted price (for the target day)
           // prediction.predictions is an array of { date, price }
-          const lastPred = prediction.predictions[prediction.predictions.length - 1];
+          const lastPred =
+            prediction.predictions[prediction.predictions.length - 1];
           const predictedPrice = lastPred ? lastPred.price : stock.currentPrice;
 
           const stockValue = stock.quantity * stock.currentPrice;
@@ -240,7 +245,10 @@ const getPortfolioPrediction = async (req, res) => {
             predictionData: prediction.predictions, // Include full trend
           });
         } catch (error) {
-          console.error(`Prediction failed for ${stock.symbol}:`, error.message);
+          console.error(
+            `Prediction failed for ${stock.symbol}:`,
+            error.message,
+          );
           // Fallback to current price if prediction fails
           const stockValue = stock.quantity * stock.currentPrice;
           currentTotal += stockValue;
@@ -256,7 +264,7 @@ const getPortfolioPrediction = async (req, res) => {
             error: "Prediction unavailable",
           });
         }
-      })
+      }),
     );
 
     res.json({

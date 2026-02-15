@@ -43,11 +43,11 @@ export default function AddStockScreen() {
 
   const filteredStocks = useMemo(() => {
     if (!search.trim()) return allStocks;
-    const q = search.toLowerCase();
+    const q = search?.toLowerCase();
     return allStocks.filter(
-      (s) =>
-        s.symbol.toLowerCase().includes(q) ||
-        s.companyName.toLowerCase().includes(q)
+      (s) => s?.symbol?.toLowerCase().includes(q),
+      // ||
+      //   s?.name?.toLowerCase().includes(q),
     );
   }, [allStocks, search]);
 
@@ -70,12 +70,12 @@ export default function AddStockScreen() {
     setSaving(true);
 
     const payload = {
-      logo: selected.logo,
+      // logo: selected.logo,
       symbol: selected.symbol,
-      companyName: selected.companyName,
+      // companyName: selected.companyName,
       quantity: parseFloat(qty),
       buyPrice: parseFloat(price),
-      currentPrice: selected.currentPrice,
+      currentPrice: selected.price,
     };
 
     // console.log("token:", token);
@@ -86,7 +86,7 @@ export default function AddStockScreen() {
         Alert.alert(
           "Added to portfolio",
           `${payload.quantity} x ${payload.symbol} @ $${payload.buyPrice}`,
-          [{ text: "OK", onPress: () => router.push("/portfolio") }]
+          [{ text: "OK", onPress: () => router.push("/portfolio") }],
         );
       } else {
         Alert.alert("Error", "Could not save position (mock).");
@@ -139,9 +139,7 @@ export default function AddStockScreen() {
                   setShowList(true);
                 }}
                 placeholder={
-                  selected
-                    ? `${selected.symbol} • ${selected.companyName}`
-                    : "Search AAPL/TSLA"
+                  selected ? `${selected.symbol}` : "Search OGDC/PPL"
                 }
                 placeholderTextColor="#9aa0a6"
                 onFocus={() => setShowList(true)}
@@ -220,7 +218,7 @@ export default function AddStockScreen() {
             <View style={[styles.fieldRow, { marginTop: 18 }]}>
               <Text style={styles.fieldLabel}>Buy Price (per share)</Text>
               <View style={styles.fieldInputWrap}>
-                <Text style={styles.fieldPrefix}>$</Text>
+                <Text style={styles.fieldPrefix}>Rs.</Text>
                 <TextInput
                   value={price}
                   onChangeText={setPrice}
@@ -233,14 +231,14 @@ export default function AddStockScreen() {
               <Text
                 style={[styles.fieldPrefix, { marginLeft: 6, marginTop: 6 }]}
               >
-                Current price: ${selected.currentPrice}
+                Current price: ${selected?.currentPrice}
               </Text>
 
               <View>
                 {allStocks?.map((s) => {
                   s.symbol === selected?.symbol && (
                     <Text style={styles.fieldPrefix}>
-                      Current Price: ${s.currentPrice}
+                      Current Price: Rs.{s?.price}
                     </Text>
                   );
                 })}
@@ -253,7 +251,7 @@ export default function AddStockScreen() {
                 <Text style={styles.totalLabel}>Estimated Cost</Text>
                 <Text style={styles.totalHint}>Quantity × price per share</Text>
               </View>
-              <Text style={styles.totalValue}>${total.toFixed(2)}</Text>
+              <Text style={styles.totalValue}>{total.toFixed(2)}.Rs</Text>
             </View>
           </View>
 

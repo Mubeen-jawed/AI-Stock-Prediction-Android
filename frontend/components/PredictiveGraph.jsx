@@ -13,12 +13,14 @@ const DAY = 24 * 60 * 60 * 1000;
 
 // Safe parse for "YYYY-MM-DD" into UTC midnight (ms)
 function toMs(dateStr) {
+  if (!dateStr) return null;
   const [y, m, d] = String(dateStr).split("-").map(Number);
   if (!y || !m || !d) return null;
   return Date.UTC(y, m - 1, d);
 }
 
 function niceStep(rawStep) {
+  if (rawStep <= 0) return 1;
   const pow = Math.pow(10, Math.floor(Math.log10(rawStep)));
   const n = rawStep / pow;
   const nice = n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10;
@@ -27,28 +29,62 @@ function niceStep(rawStep) {
 
 function buildYTicks(min, max, count = 5) {
   if (count < 2) return [min];
+  if (min === max) return [min];
+
   const raw = (max - min) / (count - 1);
   const step = niceStep(raw || 1);
   const start = Math.floor(min / step) * step;
-  return Array.from({ length: count }, (_, i) => start + i * step);
+
+  const ticks = [];
+  for (let i = 0; i < count; i++) {
+    const tick = start + i * step;
+    if (tick >= min - step * 0.1 && tick <= max + step * 0.1) {
+      ticks.push(tick);
+    }
+  }
+
+  return ticks.length > 0 ? ticks : [min, max];
 }
 
 function formatDay(ts) {
   const d = new Date(ts);
-  return d.toLocaleDateString([], { month: "short", day: "2-digit" });
+  return d.toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
+function formatYValue(value) {
+  if (value >= 1000) {
+    return value.toFixed(0);
+  } else if (value >= 100) {
+    return value.toFixed(1);
+  } else {
+    return value.toFixed(2);
+  }
 }
 
 export default function PredictiveGraph({
-  predictions = [],
+  predictions = null,
   loading = false,
-  title = "Next 15 Days AI Price Prediction",
-  fixedDays = 7,
+  title = "AI Price Forecast",
+  fixedDays = 15,
 }) {
-  // 1) Map predictions -> wagmi data
-  const data = useMemo(() => {
-    if (!Array.isArray(predictions) || predictions.length === 0) return [];
+  // Extract predictions array from API response
+  const predictionData = useMemo(() => {
+    if (!predictions) return [];
 
-    const mapped = predictions
+    // Handle both direct array and object with predictions property
+    const dataArray = Array.isArray(predictions)
+      ? predictions
+      : predictions.predictions || [];
+
+    return dataArray;
+  }, [predictions]);
+
+  // Map predictions to chart data
+  const data = useMemo(() => {
+    if (!Array.isArray(predictionData) || predictionData.length === 0)
+      return [];
+
+    const mapped = predictionData
       .map((p) => {
         const ts = toMs(p.date);
         const value = Number(p.price);
@@ -59,28 +95,25 @@ export default function PredictiveGraph({
 
     mapped.sort((a, b) => a.timestamp - b.timestamp);
     return mapped;
-  }, [predictions]);
+  }, [predictionData]);
 
   // UI sizing
   const screenW = Dimensions.get("window").width;
   const CHART_HEIGHT = 220;
   const Y_AXIS_W = 56;
-  const PADDING_X = 6;
+  const PADDING_X = 16;
 
-  const chartW = Math.max(
-    220,
-    Math.min(340, screenW - PADDING_X * 2 - Y_AXIS_W)
-  );
+  const chartW = screenW - PADDING_X * 2 - Y_AXIS_W;
 
-  // 2) Fixed X domain (last N days ending at last point)
+  // Fixed X domain (based on actual data range)
   const xDomain = useMemo(() => {
     if (!data.length) return undefined;
+    const minTs = data[0].timestamp;
     const maxTs = data[data.length - 1].timestamp;
-    const minTs = maxTs - fixedDays * DAY;
     return [minTs, maxTs];
-  }, [data, fixedDays]);
+  }, [data]);
 
-  // 3) Fixed Y range based on data values (padded + rounded)
+  // Fixed Y range based on data values (padded + rounded)
   const yRange = useMemo(() => {
     if (!data.length) return undefined;
 
@@ -93,181 +126,128 @@ export default function PredictiveGraph({
     }
 
     if (!Number.isFinite(min) || !Number.isFinite(max)) return undefined;
-    if (min === max) return { min: min - 1, max: max + 1 };
+    if (min === max) return { min: min * 0.95, max: max * 1.05 };
 
-    const pad = (max - min) * 0.02;
+    const pad = (max - min) * 0.05; // 5% padding
     const step = niceStep((max - min) / 4 || 1);
 
-    const yMin = Math.floor((min - pad) / step) * step;
+    const yMin = Math.floor((min - pad) / step) * step - 3;
     const yMax = Math.ceil((max + pad) / step) * step;
 
     return { min: yMin, max: yMax };
   }, [data]);
 
-  // 4) Y ticks (left labels)
+  // Y ticks (right labels)
   const yTicks = useMemo(() => {
     if (!yRange) return [];
     return buildYTicks(yRange.min, yRange.max, 5).slice().reverse();
   }, [yRange]);
 
-  // 5) X ticks (bottom labels)
+  // X ticks (bottom labels)
   const xTicks = useMemo(() => {
-    if (!xDomain) return [];
-    const [minTs, maxTs] = xDomain;
-    const count = 5;
+    if (!xDomain || !data.length) return [];
 
-    return Array.from({ length: count }, (_, i) => {
-      const ts = minTs + (i * (maxTs - minTs)) / (count - 1);
-      const snapped = Math.round(ts / DAY) * DAY;
-      return snapped;
-    });
-  }, [xDomain]);
+    const count = Math.min(5, data.length);
+    const ticks = [];
+
+    for (let i = 0; i < count; i++) {
+      const idx = Math.round((i * (data.length - 1)) / (count - 1));
+      ticks.push(data[idx].timestamp);
+    }
+
+    return ticks;
+  }, [xDomain, data]);
 
   if (loading) {
     return (
-      <View
-        style={{
-          height: 320,
-          borderRadius: 14,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "#101014",
-          marginTop: 20,
-        }}
-      >
-        <ActivityIndicator />
+      <View style={styles.container}>
+        <View style={styles.bybitHeader}>
+          <Text style={styles.bybitTitle}>AI Price Forecast</Text>
+          <View style={styles.bybitUnderline} />
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator color="#4ADE80" size="large" />
+          <Text style={styles.loadingText}>Generating predictions...</Text>
+        </View>
       </View>
     );
   }
 
   if (!data.length) {
     return (
-      <View
-        style={{
-          height: 320,
-          borderRadius: 14,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "#101014",
-          marginTop: 20,
-        }}
-      >
-        <Text style={{ color: "#A7B1BC" }}>No chart data</Text>
+      <View style={styles.container}>
+        <View style={styles.bybitHeader}>
+          <Text style={styles.bybitTitle}>AI Price Forecast</Text>
+          <View style={styles.bybitUnderline} />
+        </View>
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No prediction data available</Text>
+        </View>
       </View>
     );
   }
 
   return (
-    <View style={{ marginTop: 50 }}>
+    <View style={styles.container}>
       <View style={styles.bybitHeader}>
         <Text style={styles.bybitTitle}>AI Price Forecast</Text>
         <View style={styles.bybitUnderline} />
       </View>
 
-      <View
-        style={{
-          borderRadius: 14,
-          backgroundColor: "#101014",
-          marginTop: 20,
-          paddingVertical: 16,
-          paddingHorizontal: PADDING_X,
-        }}
-      >
-        {/* Title */}
-
+      <View style={styles.chartContainer}>
         <LineChart.Provider data={data} yRange={yRange} xDomain={xDomain}>
-          {/* Row: Y labels + Chart */}
-          <Text
-            style={{
-              color: "#8B96A5",
-              fontSize: 12,
-              position: "absolute",
-              top: 12,
-              left: PADDING_X + 8,
-              fontWeight: "600",
-            }}
-          >
-            Next 15 Days Prediction
+          {/* Title */}
+          <Text style={styles.chartTitle}>
+            Next {predictionData.length} Days Prediction
           </Text>
 
-          <View style={{ flexDirection: "row-reverse", marginTop: 12 }}>
+          {/* Cursor price (top) */}
+          <View style={styles.cursorPriceContainer}>
+            <LineChart.PriceText style={styles.cursorPrice} />
+            <LineChart.DatetimeText style={styles.cursorDate} />
+          </View>
+
+          {/* Chart + Y-axis */}
+          <View style={styles.chartRow}>
+            {/* Chart */}
+            <View style={styles.chartWrapper}>
+              <LineChart width={chartW} height={CHART_HEIGHT}>
+                <LineChart.Path color="#4ADE80" width={2}>
+                  <LineChart.Gradient color="#4ADE80" />
+                </LineChart.Path>
+
+                <LineChart.CursorCrosshair
+                  color="#6B7280"
+                  outerSize={40}
+                  size={8}
+                >
+                  <LineChart.Tooltip
+                    position="top"
+                    textStyle={styles.tooltipText}
+                  />
+                </LineChart.CursorCrosshair>
+              </LineChart>
+            </View>
+
             {/* Y-axis labels */}
-            <View
-              style={{
-                width: Y_AXIS_W - 20,
-                height: CHART_HEIGHT - 20,
-                justifyContent: "space-between",
-                paddingRight: 0,
-              }}
-            >
-              {yTicks.map((v) => (
-                <Text key={String(v)} style={{ color: "#8B96A5", fontSize: 9 }}>
-                  {Number(v).toFixed(2)}
+            <View style={styles.yAxisContainer}>
+              {yTicks.map((v, i) => (
+                <Text key={`y-${i}`} style={styles.yAxisLabel}>
+                  {formatYValue(v)}
                 </Text>
               ))}
             </View>
-
-            {/* Chart */}
-            <View
-              style={{
-                width: chartW,
-                height: CHART_HEIGHT,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <LineChart
-                width={chartW - 25}
-                height={CHART_HEIGHT}
-                // style={{ marginTop: 110 }}
-              >
-                <LineChart.Path color="#4ADE80">
-                  <LineChart.Gradient />
-                </LineChart.Path>
-
-                <LineChart.CursorLine
-                  style={{ height: CHART_HEIGHT }}
-                  color="#374151"
-                  textStyle={{ color: "#E6EEF8" }}
-                />
-              </LineChart>
-
-              {/* Optional: cursor price */}
-              <View style={{ position: "absolute", top: 6, left: 6 }}>
-                <LineChart.PriceText
-                  style={{
-                    color: "#E6EEF8",
-                    fontSize: 12,
-                    fontWeight: "600",
-                    marginLeft: 5,
-                  }}
-                />
-              </View>
-
-              {/* <View style={{ position: "absolute", bottom: 6, right: 10 }}>
-              <LineChart.DatetimeText
-                style={{ color: "#E6EEF8", fontSize: 12, fontWeight: "600" }}
-              />
-            </View> */}
-            </View>
           </View>
 
-          {/* X-axis labels under chart */}
-          <View
-            style={{
-              marginTop: 8,
-              marginLeft: Y_AXIS_W - 50,
-              width: chartW - 20,
-              flexDirection: "row",
-              justifyContent: "space-between",
-            }}
-          >
-            {xTicks.map((ts) => (
-              <Text key={String(ts)} style={{ color: "#9CA3AF", fontSize: 9 }}>
-                {formatDay(ts)}
-              </Text>
-            ))}
+          {/* X-axis labels */}
+          <View style={styles.xAxisContainer}>
+            <View style={styles.xAxisLabels}>
+              {xTicks.map((ts, i) => (
+                <Text key={`x-${i}`} style={styles.xAxisLabel}>
+                  {formatDay(ts)}
+                </Text>
+              ))}
+            </View>
           </View>
         </LineChart.Provider>
       </View>
@@ -276,6 +256,10 @@ export default function PredictiveGraph({
 }
 
 const styles = StyleSheet.create({
+  container: {
+    marginTop: 24,
+  },
+
   bybitHeader: {
     marginBottom: 12,
   },
@@ -292,6 +276,110 @@ const styles = StyleSheet.create({
     width: 42,
     height: 3,
     borderRadius: 2,
-    backgroundColor: "#FFD700", // gold accent
+    backgroundColor: "#4ADE80",
+  },
+
+  loadingContainer: {
+    height: 320,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#101014",
+    marginTop: 12,
+  },
+
+  loadingText: {
+    color: "#A7B1BC",
+    fontSize: 13,
+    marginTop: 12,
+  },
+
+  emptyContainer: {
+    height: 320,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#101014",
+    marginTop: 12,
+  },
+
+  emptyText: {
+    color: "#A7B1BC",
+    fontSize: 14,
+  },
+
+  chartContainer: {
+    borderRadius: 14,
+    backgroundColor: "#101014",
+    marginTop: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 10,
+  },
+
+  chartTitle: {
+    color: "#8B96A5",
+    fontSize: 12,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+
+  cursorPriceContainer: {
+    marginBottom: 8,
+  },
+
+  cursorPrice: {
+    color: "#E6EEF8",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+
+  cursorDate: {
+    color: "#A7B1BC",
+    fontSize: 10,
+    marginTop: 2,
+  },
+
+  chartRow: {
+    flexDirection: "row",
+  },
+
+  chartWrapper: {
+    flex: 1,
+  },
+
+  yAxisContainer: {
+    width: 56,
+    height: 220,
+    justifyContent: "space-between",
+    paddingLeft: 30,
+    paddingVertical: 2,
+  },
+
+  yAxisLabel: {
+    color: "#8B96A5",
+    fontSize: 9,
+    fontWeight: "500",
+  },
+
+  xAxisContainer: {
+    marginTop: 8,
+  },
+
+  xAxisLabels: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingRight: 30,
+  },
+
+  xAxisLabel: {
+    color: "#8B96A5",
+    fontSize: 9,
+    fontWeight: "500",
+  },
+
+  tooltipText: {
+    color: "#E6EEF8",
+    fontSize: 11,
+    fontWeight: "600",
   },
 });

@@ -69,11 +69,11 @@ let cachedStocks = null;
 export async function fetchStocks({ topTab = "Favorites", q = "", token }) {
   // Load real backend data if not loaded yet
   if (!cachedStocks) {
-    const res = await fetch(`${API_URL}/api/stocks?exchange=US`, {
+    const res = await fetch(`${API_URL}/api/stocks/psx-kse30`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const result = await res.json();
-    cachedStocks = result.data; // <--- only the data array, not the full object
+    cachedStocks = result; // <--- only the data array, not the full object
   }
 
   if (!cachedStocks || !Array.isArray(cachedStocks)) {
@@ -95,17 +95,19 @@ export async function fetchStocks({ topTab = "Favorites", q = "", token }) {
 
   if (q) {
     rows = rows.filter((x) =>
-      (x.name + x.symbol).toLowerCase().includes(q.toLowerCase())
+      (x.name + x.symbol).toLowerCase().includes(q.toLowerCase()),
     );
   }
 
   return rows;
 }
 
-export async function fetchAllStocks() {
-  // const res = await fetch(`${API_URL}/api/stocks?exchange=US&`);
-  // return await res.json();
-
-  await new Promise((r) => setTimeout(r, 150));
-  return stocksData;
+export async function fetchAllStocks(token) {
+  const res = await fetch(`${API_URL}/api/stocks/psx-kse30`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const result = await res.json();
+  return result;
+  // await new Promise((r) => setTimeout(r, 150));
+  // return stocksData;
 }

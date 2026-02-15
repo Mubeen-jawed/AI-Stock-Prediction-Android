@@ -2,16 +2,6 @@ import React, { useMemo } from "react";
 import { View, Text, ActivityIndicator, Dimensions } from "react-native";
 import { CandlestickChart } from "react-native-wagmi-charts";
 
-// Your existing helper (keep yours)
-// function parseTimestamp(ts) {
-//   // accepts seconds or ms; returns ms
-//   const n = Number(ts);
-//   if (!Number.isFinite(n)) return null;
-//   return n < 1e12 ? n * 1000 : n;
-// }
-
-// console.log("CandlestickChart is", CandlestickChart);
-
 function toMsTimestamp(t) {
   if (t == null) return null;
 
@@ -27,89 +17,196 @@ function toMsTimestamp(t) {
 
   if (typeof t !== "string") return null;
 
-  // Handle "YYYY-MM-DD HH:mm:ss" by converting to ISO-ish
-  // NOTE: This will parse as local time of the device.
-  const isoLike = t.includes("T") ? t : t.replace(" ", "T");
-  const ms = Date.parse(isoLike);
-
+  // Handle ISO strings and date strings
+  const ms = Date.parse(t);
   return Number.isFinite(ms) ? ms : null;
 }
 
-function downsampleCandles(candles, chartWidth) {
+/**
+ * Intelligently downsample candles to optimal count for clean rendering
+ * Uses bucketing to preserve price action while reducing clutter
+ */
+function optimizeCandles(candles, rangeKey, chartWidth) {
   if (!Array.isArray(candles) || candles.length === 0) return [];
 
-  // How many candles can we reasonably draw on this width?
-  // 5–7px per candle+gap is usually the sweet spot on mobile.
-  const pxPerCandle = 6;
-  const maxCandles = Math.max(40, Math.floor(chartWidth / pxPerCandle));
+  // Determine optimal candle count based on range and screen width
+  let targetCount;
+  switch (rangeKey) {
+    case "1D":
+      targetCount = Math.min(80, candles.length); // Show more detail for intraday
+      break;
+    case "5D":
+      targetCount = Math.min(100, candles.length);
+      break;
+    case "1M":
+      targetCount = Math.min(60, candles.length);
+      break;
+    case "6M":
+      targetCount = Math.min(80, candles.length);
+      break;
+    case "1Y":
+      targetCount = Math.min(100, candles.length);
+      break;
+    default: // ALL
+      targetCount = Math.min(120, candles.length);
+  }
 
-  if (candles.length <= maxCandles) return candles;
+  // If we have fewer candles than target, return all
+  if (candles.length <= targetCount) return candles;
 
-  const step = Math.ceil(candles.length / maxCandles);
+  // Calculate bucket size
+  const bucketSize = Math.ceil(candles.length / targetCount);
   const result = [];
 
-  // Bucket candles and keep the last one in each bucket (keeps “latest” shape)
-  for (let i = 0; i < candles.length; i += step) {
-    result.push(candles[Math.min(i + step - 1, candles.length - 1)]);
+  // Group candles into buckets and create aggregated candles
+  for (let i = 0; i < candles.length; i += bucketSize) {
+    const bucket = candles.slice(i, i + bucketSize);
+
+    if (bucket.length === 0) continue;
+
+    // For each bucket, create a candle that represents the period
+    const aggregated = {
+      timestamp: bucket[0].timestamp, // Use first timestamp
+      open: bucket[0].open,
+      close: bucket[bucket.length - 1].close,
+      high: Math.max(...bucket.map((c) => c.high)),
+      low: Math.min(...bucket.map((c) => c.low)),
+    };
+
+    result.push(aggregated);
   }
 
   return result;
 }
 
 function getMinMax(candles) {
-  let min = Infinity,
-    max = -Infinity;
+  if (!candles || candles.length === 0) return { min: 0, max: 0 };
+
+  let min = Infinity;
+  let max = -Infinity;
+
   for (const c of candles) {
     if (c.low < min) min = c.low;
     if (c.high > max) max = c.high;
   }
+
   if (!Number.isFinite(min) || !Number.isFinite(max)) return { min: 0, max: 0 };
-  if (min === max) return { min: min - 1, max: max + 1 };
-  return { min, max };
+  if (min === max) return { min: min * 0.95, max: max * 1.05 };
+
+  // Add 3% padding to top and bottom for better visualization
+  const range = max - min;
+  const padding = range * 0.03;
+
+  return {
+    min: min - padding,
+    max: max + padding,
+  };
 }
 
 function niceStep(rawStep) {
-  // rounds step to 1/2/5 * 10^n
+  if (rawStep <= 0) return 1;
+
   const pow = Math.pow(10, Math.floor(Math.log10(rawStep)));
   const n = rawStep / pow;
   const nice = n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10;
   return nice * pow;
 }
 
-function buildYTicks(min, max, count = 4) {
-  const raw = (max - min) / (count - 1);
-  const step = niceStep(raw);
+function buildYTicks(min, max, count = 5) {
+  if (min === max) return [min];
+
+  const range = max - min;
+  const rawStep = range / (count - 1);
+  const step = niceStep(rawStep);
+
+  // Start from a nice round number at or below min
   const start = Math.floor(min / step) * step;
-  const ticks = Array.from({ length: count }, (_, i) => start + i * step);
+
+  const ticks = [];
+  let currentTick = start;
+
+  // Generate ticks
+  while (currentTick <= max && ticks.length < count + 2) {
+    if (currentTick >= min - step * 0.01) {
+      ticks.push(currentTick);
+    }
+    currentTick += step;
+  }
+
+  // Ensure we always have min and max for better alignment
+  if (ticks.length === 0 || Math.abs(ticks[0] - min) > step * 0.1) {
+    ticks.unshift(min);
+  }
+  if (
+    ticks.length === 0 ||
+    Math.abs(ticks[ticks.length - 1] - max) > step * 0.1
+  ) {
+    ticks.push(max);
+  }
+
+  // Take evenly spaced ticks if we have too many
+  if (ticks.length > count) {
+    const step = (ticks.length - 1) / (count - 1);
+    const finalTicks = [];
+    for (let i = 0; i < count; i++) {
+      const idx = Math.round(i * step);
+      finalTicks.push(ticks[idx]);
+    }
+    return finalTicks;
+  }
+
   return ticks;
 }
 
 function buildXTicks(candles, count = 4) {
   if (!candles?.length) return [];
+
   const last = candles.length - 1;
-  return Array.from({ length: count }, (_, i) => {
+  const ticks = [];
+
+  for (let i = 0; i < count; i++) {
     const idx = Math.round((i * last) / (count - 1));
-    return { idx, ts: candles[idx].timestamp };
-  });
+    ticks.push({ idx, ts: candles[idx].timestamp });
+  }
+
+  return ticks;
 }
 
 function formatX(ts, rangeKey) {
   const d = new Date(ts);
-  if (rangeKey === "1D")
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  if (rangeKey === "5D") return d.toLocaleDateString([], { weekday: "short" });
-  if (rangeKey === "1M")
-    return d.toLocaleDateString([], { day: "2-digit", month: "short" });
-  return d.toLocaleDateString([], { month: "short", year: "2-digit" }); // 6M / 1Y / ALL
+
+  if (rangeKey === "1D") {
+    return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  }
+  if (rangeKey === "5D") {
+    return d.toLocaleDateString([], { month: "short", day: "numeric" });
+  }
+  if (rangeKey === "1M") {
+    return d.toLocaleDateString([], { month: "short", day: "numeric" });
+  }
+  if (rangeKey === "6M") {
+    return d.toLocaleDateString([], { month: "short", day: "numeric" });
+  }
+  // 1Y / ALL
+  return d.toLocaleDateString([], { month: "short", year: "2-digit" });
+}
+
+function formatYValue(value) {
+  // Format based on magnitude
+  if (value >= 1000) {
+    return value.toFixed(0);
+  } else if (value >= 100) {
+    return value.toFixed(1);
+  } else {
+    return value.toFixed(2);
+  }
 }
 
 export default function StockCandleChart({ chart, loading, rangeKey }) {
   const W = Dimensions.get("window").width;
 
-  console.log(rangeKey);
-
   const candleData = useMemo(() => {
-    const candles = chart?.candles; // supports a few shapes
+    const candles = chart?.history;
     if (!Array.isArray(candles) || candles.length === 0) return [];
 
     return candles
@@ -130,23 +227,28 @@ export default function StockCandleChart({ chart, loading, rangeKey }) {
       .sort((a, b) => a.timestamp - b.timestamp);
   }, [chart]);
 
-  const chartWidth = W - 100; // same width you pass to CandlestickChart
-  const displayCandles = useMemo(
-    () => downsampleCandles(candleData, chartWidth),
-    [candleData, chartWidth]
-  );
+  const AXIS_Y_W = 55;
+  const PADDING_H = 16;
+  const CHART_W = W - PADDING_H * 2 - AXIS_Y_W;
 
-  const AXIS_Y_W = 40; // right labels width
-  const CHART_W = W - 40 - AXIS_Y_W;
+  // Optimize candles for clean rendering
+  const displayCandles = useMemo(
+    () => optimizeCandles(candleData, rangeKey, CHART_W),
+    [candleData, rangeKey, CHART_W],
+  );
 
   const { min, max } = useMemo(
     () => getMinMax(displayCandles),
-    [displayCandles]
+    [displayCandles],
   );
-  const yTicks = useMemo(() => buildYTicks(min, max, 5), [min, max]);
+
+  const yTicks = useMemo(() => {
+    return buildYTicks(min, max, 5);
+  }, [min, max]);
+
   const xTicks = useMemo(
-    () => buildXTicks(displayCandles, 5),
-    [displayCandles]
+    () => buildXTicks(displayCandles, 4),
+    [displayCandles],
   );
 
   if (loading) {
@@ -160,7 +262,7 @@ export default function StockCandleChart({ chart, loading, rangeKey }) {
           backgroundColor: "#0B0E11",
         }}
       >
-        <ActivityIndicator />
+        <ActivityIndicator color="#fff" size="large" />
       </View>
     );
   }
@@ -176,7 +278,9 @@ export default function StockCandleChart({ chart, loading, rangeKey }) {
           backgroundColor: "#101014",
         }}
       >
-        <Text style={{ color: "#A7B1BC" }}>No chart data</Text>
+        <Text style={{ color: "#A7B1BC", fontSize: 14 }}>
+          No chart data available
+        </Text>
       </View>
     );
   }
@@ -186,70 +290,86 @@ export default function StockCandleChart({ chart, loading, rangeKey }) {
       style={{
         backgroundColor: "#101014",
         borderRadius: 14,
-        paddingBottom: 20,
+        paddingBottom: 16,
       }}
     >
-      {/* IMPORTANT: feed displayCandles (downsampled) */}
       <CandlestickChart.Provider data={displayCandles}>
-        {/* Crosshair labels (interactive) */}
-        <View style={{ paddingHorizontal: 0, paddingBottom: 6 }}>
+        {/* Crosshair labels */}
+        <View
+          style={{
+            paddingHorizontal: PADDING_H,
+            paddingTop: 12,
+            paddingBottom: 8,
+          }}
+        >
           <CandlestickChart.PriceText
             style={{
               color: "#E6EEF8",
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: "600",
-              marginLeft: 6,
             }}
           />
           <CandlestickChart.DatetimeText
             style={{
               color: "#A7B1BC",
-              fontSize: 9,
-              marginTop: 0,
-              marginLeft: 6,
+              fontSize: 10,
+              marginTop: 2,
             }}
           />
         </View>
 
         {/* Chart + Y axis */}
-        <View style={{ flexDirection: "row-reverse", paddingHorizontal: 0 }}>
+        <View style={{ flexDirection: "row", paddingHorizontal: PADDING_H }}>
+          {/* Chart */}
+          <View style={{ width: CHART_W }}>
+            <CandlestickChart height={250} width={CHART_W}>
+              <CandlestickChart.Candles
+                positiveColor="#22c55e"
+                negativeColor="#ef4444"
+                // Adjust candle width based on data density
+                candleWidth={Math.max(
+                  2,
+                  Math.min(8, CHART_W / displayCandles.length - 1),
+                )}
+              />
+              <CandlestickChart.Crosshair>
+                <CandlestickChart.Tooltip
+                  textStyle={{
+                    color: "#fff",
+                    fontSize: 11,
+                    fontWeight: "500",
+                  }}
+                />
+              </CandlestickChart.Crosshair>
+            </CandlestickChart>
+          </View>
+
           {/* Y axis labels */}
           <View
             style={{
               width: AXIS_Y_W,
               justifyContent: "space-between",
-              paddingLeft: 0,
+              paddingLeft: 10,
+              paddingRight: "3",
               height: 250,
+              paddingVertical: 2,
             }}
           >
             {yTicks
               .slice()
               .reverse()
-              .map((v) => (
-                <Text key={String(v)} style={{ color: "#8B96A5", fontSize: 9 }}>
-                  {v.toFixed(2)}
+              .map((v, i) => (
+                <Text
+                  key={`y-${i}`}
+                  style={{
+                    color: "#8B96A5",
+                    fontSize: 9,
+                    fontWeight: "500",
+                  }}
+                >
+                  {formatYValue(v)}
                 </Text>
               ))}
-          </View>
-
-          {/* Chart */}
-          <View style={{ width: CHART_W }}>
-            <CandlestickChart
-              height={250}
-              width={CHART_W - 25}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                marginBottom: 15,
-              }}
-            >
-              {/* <CandlestickChart.Grid /> */}
-              <CandlestickChart.Candles />
-              <CandlestickChart.Crosshair>
-                <CandlestickChart.Tooltip />
-              </CandlestickChart.Crosshair>
-            </CandlestickChart>
           </View>
         </View>
 
@@ -257,22 +377,26 @@ export default function StockCandleChart({ chart, loading, rangeKey }) {
         <View
           style={{
             flexDirection: "row",
-            paddingHorizontal: 0,
+            paddingHorizontal: PADDING_H,
             paddingTop: 8,
-            justifyContent: "left",
-            marginLeft: 21,
           }}
         >
-          <View style={{ width: AXIS_Y_W - 35 }} />
           <View
             style={{
-              width: CHART_W - 30,
+              width: CHART_W,
               flexDirection: "row",
               justifyContent: "space-between",
             }}
           >
-            {xTicks.map((t) => (
-              <Text key={t.idx} style={{ color: "#8B96A5", fontSize: 9 }}>
+            {xTicks.map((t, i) => (
+              <Text
+                key={`x-${i}`}
+                style={{
+                  color: "#8B96A5",
+                  fontSize: 9,
+                  fontWeight: "500",
+                }}
+              >
                 {formatX(t.ts, rangeKey)}
               </Text>
             ))}

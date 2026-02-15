@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -15,9 +16,18 @@ import Loader from "../../../components/Loader";
 import StockCandleChart from "../../../components/StockCandleChart";
 import PredictiveGraph from "../../../components/PredictiveGraph";
 
-const TIME_RANGES = ["1D", "5D", "1M", "6M", "1Y"];
+const TIME_RANGES = ["1M", "6M", "1Y", "ALL"];
 
-export default function StockDetailScreen({ navigation }) {
+const RANGE_MAPPING = {
+  "1D": { range: "1d", interval: "15m" },
+  "5D": { range: "5d", interval: "30m" },
+  "1M": { range: "1mo", interval: "1d" }, // ← Add the 'd'
+  "6M": { range: "6mo", interval: "1d" }, // ← Add the 'd'
+  "1Y": { range: "1y", interval: "1d" }, // ← Add the 'd'
+  ALL: { range: "max", interval: "1d" },
+};
+
+export default function StockDetailScreen() {
   const router = useRouter();
   const { symbol } = useLocalSearchParams();
   const { token } = useAuth();
@@ -25,7 +35,7 @@ export default function StockDetailScreen({ navigation }) {
   const [stock, setStock] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [selectedRange, setSelectedRange] = useState("1D");
+  const [selectedRange, setSelectedRange] = useState("6M");
 
   const [watchlist, setWatchlist] = useState([]);
   const [isInWatchlist, setIsInWatchlist] = useState(false);
@@ -33,9 +43,10 @@ export default function StockDetailScreen({ navigation }) {
   const [chart, setChart] = useState(null);
   const [chartLoading, setChartLoading] = useState(false);
 
-  // const [predictions, setPredictions] = useState(null);
+  const [predictions, setPredictions] = useState(null);
   const [predictionsLoading, setPredictionsLoading] = useState(false);
 
+  // Chart Fetch
   useEffect(() => {
     if (!symbol || !token) return;
 
@@ -43,11 +54,10 @@ export default function StockDetailScreen({ navigation }) {
       try {
         setChartLoading(true);
 
+        const { range, interval } = RANGE_MAPPING[selectedRange];
         const res = await fetch(
-          `${API_URL}/api/stocks/chart/${symbol}?range=${selectedRange}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
+          `${API_URL}/api/stocks/psx/${symbol}/history?range=${range}&interval=${interval}`,
+          { headers: { Authorization: `Bearer ${token}` } },
         );
 
         const data = await res.json();
@@ -62,6 +72,7 @@ export default function StockDetailScreen({ navigation }) {
     fetchChart();
   }, [symbol, token, selectedRange]);
 
+  //Single Stock Fetch
   useEffect(() => {
     if (!symbol || !token) return;
 
@@ -70,15 +81,12 @@ export default function StockDetailScreen({ navigation }) {
         setLoading(true);
         setError(null);
 
-        const res = await fetch(
-          `${API_URL}/api/stocks/price/${symbol}?exchange=US`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const res = await fetch(`${API_URL}/api/stocks/psx/${symbol}`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
         if (!res.ok) {
           const text = await res.text();
@@ -89,7 +97,7 @@ export default function StockDetailScreen({ navigation }) {
         // Expecting shape:
         // { symbol, currentPrice, open, high, low, prevClose, change, percentChange }
         setStock(data);
-        // console.log(stock.symbol);
+        console.log(data);
       } catch (err) {
         console.log("Stock fetch error:", err);
         setError("Failed to load stock data.");
@@ -101,6 +109,9 @@ export default function StockDetailScreen({ navigation }) {
     fetchStock();
   }, [symbol, token]);
 
+  // console.log(stock);
+
+  //Watchlist
   useEffect(() => {
     // On mount, check if stock is in watchlist
     const checkWatchlist = async () => {
@@ -122,7 +133,7 @@ export default function StockDetailScreen({ navigation }) {
         setWatchlist(data.watchlist);
 
         const isWatchlisted = data.watchlist.some(
-          (item) => item.symbol === symbol
+          (item) => item.symbol === symbol,
         );
         setIsInWatchlist(isWatchlisted);
 
@@ -135,95 +146,110 @@ export default function StockDetailScreen({ navigation }) {
     if (token && symbol) checkWatchlist();
   }, [token, symbol]);
 
-  // useEffect(() => {
-  //   const fetchPredictions = async () => {
-  //     try {
-  //       setPredictionsLoading(false);
+  //Predictions
+  useEffect(() => {
+    // Guard: only fetch if we have a symbol
+    if (!symbol) return;
 
-  //       const res = await fetch(
-  //         `${API_URL}/predict/${symbol}?days=15&modelType=lstm`,
-  //         {
-  //           method: "POST",
-  //         }
-  //       );
-  //       const data = await res.json();
+    const fetchPredictions = async () => {
+      try {
+        setPredictionsLoading(true);
 
-  //       setPredictions(data);
-  //       // console.log("Predictions:", data);
-  //     } catch (err) {
-  //       console.log("Prediction fetch error:", err);
-  //     } finally {
-  //       setPredictionsLoading(false);
-  //     }
-  //   };
+        console.log("Fetching predictions for:", symbol);
 
-  //   fetchPredictions();
-  // });
+        const res = await fetch(
+          `${API_URL}/predict/${symbol}?days=10&modelType=lstm`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        );
 
-  // console.log(predictions);
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
 
-  const predictions = [
-    {
-      date: "2025-12-24",
-      price: 274.1451110839844,
-    },
-    {
-      date: "2025-12-25",
-      price: 273.7609558105469,
-    },
-    {
-      date: "2025-12-26",
-      price: 273.5689697265625,
-    },
-    {
-      date: "2025-12-27",
-      price: 273.494873046875,
-    },
-    {
-      date: "2025-12-28",
-      price: 273.49456787109375,
-    },
-    {
-      date: "2025-12-29",
-      price: 273.54132080078125,
-    },
-    {
-      date: "2025-12-30",
-      price: 273.6188659667969,
-    },
-    {
-      date: "2025-12-31",
-      price: 273.7171325683594,
-    },
-    {
-      date: "2026-01-01",
-      price: 273.8297424316406,
-    },
-    {
-      date: "2026-01-02",
-      price: 273.9524841308594,
-    },
-    {
-      date: "2026-01-03",
-      price: 274.0827331542969,
-    },
-    {
-      date: "2026-01-04",
-      price: 274.218505859375,
-    },
-    {
-      date: "2026-01-05",
-      price: 274.3583679199219,
-    },
-    {
-      date: "2026-01-06",
-      price: 274.5013427734375,
-    },
-    {
-      date: "2026-01-07",
-      price: 274.6465759277344,
-    },
-  ];
+        const data = await res.json();
+
+        console.log("Predictions received:", data);
+        setPredictions(data);
+      } catch (err) {
+        console.error("Prediction fetch error:", err);
+        setPredictions(null); // Clear on error
+      } finally {
+        setPredictionsLoading(false);
+      }
+    };
+
+    fetchPredictions();
+  }, [symbol]);
+
+  console.log(predictions);
+
+  // const predictions = [
+  //   {
+  //     date: "2025-12-24",
+  //     price: 274.1451110839844,
+  //   },
+  //   {
+  //     date: "2025-12-25",
+  //     price: 273.7609558105469,
+  //   },
+  //   {
+  //     date: "2025-12-26",
+  //     price: 273.5689697265625,
+  //   },
+  //   {
+  //     date: "2025-12-27",
+  //     price: 273.494873046875,
+  //   },
+  //   {
+  //     date: "2025-12-28",
+  //     price: 273.49456787109375,
+  //   },
+  //   {
+  //     date: "2025-12-29",
+  //     price: 273.54132080078125,
+  //   },
+  //   {
+  //     date: "2025-12-30",
+  //     price: 273.6188659667969,
+  //   },
+  //   {
+  //     date: "2025-12-31",
+  //     price: 273.7171325683594,
+  //   },
+  //   {
+  //     date: "2026-01-01",
+  //     price: 273.8297424316406,
+  //   },
+  //   {
+  //     date: "2026-01-02",
+  //     price: 273.9524841308594,
+  //   },
+  //   {
+  //     date: "2026-01-03",
+  //     price: 274.0827331542969,
+  //   },
+  //   {
+  //     date: "2026-01-04",
+  //     price: 274.218505859375,
+  //   },
+  //   {
+  //     date: "2026-01-05",
+  //     price: 274.3583679199219,
+  //   },
+  //   {
+  //     date: "2026-01-06",
+  //     price: 274.5013427734375,
+  //   },
+  //   {
+  //     date: "2026-01-07",
+  //     price: 274.6465759277344,
+  //   },
+  // ];
 
   const positive = stock?.change >= 0;
 
@@ -260,7 +286,12 @@ export default function StockDetailScreen({ navigation }) {
     }
   };
 
-  const getPredictionText = () => {
+  const getPredictionText = (predictChange) => {
+    // Handle null/undefined/NaN
+    if (predictChange == null || !Number.isFinite(predictChange)) {
+      return "Waiting for prediction data...";
+    }
+
     if (predictChange < 0) {
       return "Not recommended to buy. Expected negative return.";
     }
@@ -312,8 +343,54 @@ export default function StockDetailScreen({ navigation }) {
     return "Extremely bullish. Strong buy with high return potential.";
   };
 
-  const predictChange =
-    (predictions[0].price.toFixed(2) / stock.open) * 100 - 100;
+  // Calculate prediction change with proper null checks
+  const calculatePredictChange = (predictions, currentPrice) => {
+    // Check if we have predictions
+    if (!predictions) return null;
+
+    // Extract predictions array from API response
+    const predictionArray = Array.isArray(predictions)
+      ? predictions
+      : predictions?.predictions || [];
+
+    // Check if array has data
+    if (!predictionArray || predictionArray.length === 0) return null;
+
+    // Get last prediction (15 days out)
+    const lastPrediction = predictionArray[predictionArray.length - 1];
+
+    // Validate prediction data
+    if (!lastPrediction || !lastPrediction.price) return null;
+
+    // Validate current price
+    const current = Number(currentPrice);
+    if (!Number.isFinite(current) || current <= 0) return null;
+
+    // Calculate percentage change
+    const futurePrice = Number(lastPrediction.price);
+    if (!Number.isFinite(futurePrice)) return null;
+
+    return (futurePrice / current - 1) * 100;
+  };
+
+  // Get prediction array safely
+  const getPredictionArray = (predictions) => {
+    if (!predictions) return [];
+    return Array.isArray(predictions)
+      ? predictions
+      : predictions?.predictions || [];
+  };
+
+  // Calculate predictChange with proper checks
+  const predictionArray = getPredictionArray(predictions);
+  const predictChange = calculatePredictChange(
+    predictions,
+    stock?.price || stock?.open || stock?.close,
+  );
+  const lastPrediction =
+    predictionArray.length > 0
+      ? predictionArray[predictionArray.length - 1]
+      : null;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -328,8 +405,8 @@ export default function StockDetailScreen({ navigation }) {
           </TouchableOpacity>
 
           <View style={styles.titleWrap}>
-            <Text style={styles.symbol}>{stock.symbol}</Text>
-            {/* <Text style={styles.subSymbol}>NASDAQ · USD</Text> */}
+            <Text style={styles.symbol}>{stock?.symbol}</Text>
+            <Text style={styles.subSymbol}>{stock?.name}</Text>
           </View>
 
           <TouchableOpacity
@@ -356,7 +433,7 @@ export default function StockDetailScreen({ navigation }) {
         >
           {/* Price Area */}
           <View style={styles.priceArea}>
-            <Text style={styles.price}>${stock.currentPrice?.toFixed(2)}</Text>
+            <Text style={styles.price}>{stock?.price?.toFixed(2)}</Text>
 
             <View
               style={[
@@ -372,7 +449,7 @@ export default function StockDetailScreen({ navigation }) {
                 }}
               >
                 {positive ? "+" : ""}
-                {stock.percentChange?.toFixed(2)}%
+                {stock?.changePercent?.toFixed(2)}%
               </Text>
 
               {/* <Text style={styles.changeText}>
@@ -381,7 +458,6 @@ export default function StockDetailScreen({ navigation }) {
               </Text> */}
             </View>
           </View>
-
           {/* Time Tabs */}
           <View style={styles.tabs}>
             {TIME_RANGES.map((t) => {
@@ -402,7 +478,6 @@ export default function StockDetailScreen({ navigation }) {
               );
             })}
           </View>
-
           {/* Chart Placeholder */}
           {/* <View style={styles.tabs}>
             {ranges.map((r) => (
@@ -415,13 +490,11 @@ export default function StockDetailScreen({ navigation }) {
               </Text>
             ))}
           </View> */}
-
           <StockCandleChart
             rangeKey={selectedRange}
             chart={chart}
             loading={chartLoading}
           />
-
           {/* Stats Section */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>24h Overview</Text>
@@ -429,20 +502,20 @@ export default function StockDetailScreen({ navigation }) {
             <View style={styles.grid}>
               <View style={styles.gridItem}>
                 <Text style={styles.label}>Open</Text>
-                <Text style={styles.value}>${stock.open}</Text>
+                <Text style={styles.value}>{stock?.open}</Text>
               </View>
               <View style={styles.gridItem}>
                 <Text style={styles.label}>High</Text>
-                <Text style={styles.value}>${stock.high}</Text>
+                <Text style={styles.value}>{stock?.high}</Text>
               </View>
 
               <View style={styles.gridItem}>
                 <Text style={styles.label}>Low</Text>
-                <Text style={styles.value}>${stock.low}</Text>
+                <Text style={styles.value}>{stock?.low}</Text>
               </View>
               <View style={styles.gridItem}>
-                <Text style={styles.label}>Prev Close</Text>
-                <Text style={styles.value}>${stock.prevClose}</Text>
+                <Text style={styles.label}>Volume</Text>
+                <Text style={styles.value}>{stock?.volume}</Text>
               </View>
 
               <View style={styles.gridItem}>
@@ -454,7 +527,7 @@ export default function StockDetailScreen({ navigation }) {
                   ]}
                 >
                   {positive ? "+" : ""}
-                  {stock.change}
+                  {stock?.changeFromOpen}
                 </Text>
               </View>
               <View style={styles.gridItem}>
@@ -466,75 +539,138 @@ export default function StockDetailScreen({ navigation }) {
                   ]}
                 >
                   {positive ? "+" : ""}
-                  {stock.percentChange?.toFixed(2)}%
+                  {stock?.changeFromOpenPercent?.toFixed(2)}%
                 </Text>
               </View>
             </View>
           </View>
-
           <PredictiveGraph
             loading={predictionsLoading}
             predictions={predictions}
           />
-
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>
-              Expected 15 Days {symbol} Statistics
-            </Text>
-
-            <View style={styles.grid}>
-              <View style={styles.gridItem}>
-                <Text style={styles.label}>Currect Price</Text>
-                <Text style={styles.value}>${stock.open}</Text>
-              </View>
-              <View style={styles.gridItem}>
-                <Text style={styles.label}>After 15 days (Expected)</Text>
-                <Text style={styles.value}>
-                  ${predictions[0].price.toFixed(2)}
+          {predictionArray.length > 0 && stock && (
+            <>
+              {/* AI Overview Card */}
+              <View style={styles.card}>
+                <Text style={styles.cardTitle}>
+                  Expected {predictionArray.length} Days {symbol} Statistics
                 </Text>
-              </View>
-              <View>
-                <Text style={styles.label}>Percent (%)</Text>
-                <Text
-                  style={[
-                    styles.value,
-                    { color: predictChange >= 0 ? "#0DBA7D" : "#D9435E" },
-                  ]}
-                >
-                  {predictChange.toFixed(2)}%
-                </Text>
-              </View>
 
-              <View>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Ionicons name="sparkles" size={15} color="#87CEEB" />
-                  <Text style={styles.AIValue}>AI Suggestions:</Text>
+                <View style={styles.grid}>
+                  <View style={styles.gridItem}>
+                    <Text style={styles.label}>Current Price</Text>
+                    <Text style={styles.value}>
+                      {(stock?.price || stock?.open || stock?.close)?.toFixed(
+                        2,
+                      ) || "N/A"}
+                    </Text>
+                  </View>
+
+                  <View style={styles.gridItem}>
+                    <Text style={styles.label}>
+                      After {predictionArray.length} days (Expected)
+                    </Text>
+                    <Text style={styles.value}>
+                      {lastPrediction
+                        ? Number(lastPrediction.price).toFixed(2)
+                        : "N/A"}
+                    </Text>
+                  </View>
+
+                  <View style={styles.gridItem}>
+                    <Text style={styles.label}>Change (%)</Text>
+                    <Text
+                      style={[
+                        styles.value,
+                        {
+                          color:
+                            predictChange == null
+                              ? "#8B96A5"
+                              : predictChange >= 0
+                                ? "#22c55e"
+                                : "#ef4444",
+                        },
+                      ]}
+                    >
+                      {predictChange != null
+                        ? `${predictChange >= 0 ? "+" : ""}${predictChange.toFixed(2)}%`
+                        : "Calculating..."}
+                    </Text>
+                  </View>
+
+                  <View style={{ width: "100%", marginBottom: 14 }}>
+                    <View
+                      style={{
+                        display: "flex",
+                        justifyContent: "left",
+                        flexDirection: "row",
+                        alignItems: "center",
+                        marginBottom: 6,
+                      }}
+                    >
+                      <Ionicons name="sparkles" size={15} color="#87CEEB" />
+                      <Text style={styles.AIValue}> AI Analysis</Text>
+                    </View>
+                    <Text
+                      style={[
+                        styles.AIText,
+                        { fontSize: 13, lineHeight: 18, width: "100%" },
+                      ]}
+                    >
+                      {getPredictionText(predictChange)}
+                    </Text>
+                  </View>
                 </View>
-                <Text style={styles.value}>{getPredictionText()}</Text>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>By Day Breakdown</Text>
-
-            <View style={styles.dayGrid}>
-              <View style={styles.dayGridItem}>
-                <Text style={styles.dayLabel}>Date</Text>
-                <Text style={styles.dayLabel}>Stock Price</Text>
               </View>
 
-              {predictions.map((prediction, index) => (
-                <View style={styles.dayGridItem} key={index}>
-                  <Text style={styles.value}>{prediction.date}</Text>
-                  <Text style={styles.value}>
-                    ${prediction.price.toFixed(2)}
-                  </Text>
+              {/* Day Breakdown Card */}
+              <View style={styles.card}>
+                <Text style={styles.cardTitle}>Daily Breakdown</Text>
+
+                <View style={styles.dayGrid}>
+                  {/* Header */}
+                  <View style={[styles.dayGridItem]}>
+                    <Text style={styles.dayLabel}>Date</Text>
+                    <Text style={styles.dayLabel}>Predicted Price</Text>
+                  </View>
+
+                  {/* Data rows */}
+                  {predictionArray.map((prediction, index) => {
+                    const price = Number(prediction.price);
+                    const isValid = Number.isFinite(price);
+
+                    return (
+                      <View
+                        style={[
+                          styles.dayGridItem,
+                          index % 2 === 0 && styles.dayGridItemEven,
+                        ]}
+                        key={`${prediction.date}-${index}`}
+                      >
+                        <Text style={styles.dayValue}>
+                          {prediction.date || "N/A"}
+                        </Text>
+                        <Text style={[styles.dayValue, styles.dayPrice]}>
+                          {isValid ? price.toFixed(2) : "N/A"}
+                        </Text>
+                      </View>
+                    );
+                  })}
                 </View>
-              ))}
+              </View>
+            </>
+          )}
+          {/* // If predictions are loading, show this: */}
+          {/* {predictionsLoading && (
+            <View style={styles.card}>
+              <ActivityIndicator color="#4ADE80" size="large" />
+              <Text
+                style={[styles.value, { textAlign: "center", marginTop: 12 }]}
+              >
+                Generating AI predictions...
+              </Text>
             </View>
-          </View>
-
+          )} */}
           {/* Action Buttons */}
           {/* <View style={styles.actionRow}>
             <TouchableOpacity style={styles.primaryBtn}>
@@ -694,11 +830,20 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     flexWrap: "nowrap",
   },
+  dayGridHeader: {
+    backgroundColor: "#1F2937",
+    borderRadius: 8,
+    marginBottom: 4,
+    borderBottomWidth: 0,
+  },
   dayGridItem: {
     justifyContent: "space-between",
     width: "100%",
     flexDirection: "row",
     marginBottom: 14,
+  },
+  dayGridItemEven: {
+    backgroundColor: "#0D1117",
   },
   label: {
     color: "#7A7A7A",
@@ -709,6 +854,16 @@ const styles = StyleSheet.create({
     color: "#7A7A7A",
     fontSize: 14,
     textAlign: "center",
+  },
+  dayValue: {
+    color: "#E6EEF8",
+    fontSize: 13,
+    fontWeight: "500",
+  },
+
+  dayPrice: {
+    fontWeight: "600",
+    color: "#4ADE80",
   },
   value: {
     color: "#dfdfdfff",
@@ -722,6 +877,11 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     marginBottom: 4,
     marginTop: 15,
+  },
+  AIText: {
+    color: "#dfdfdfff",
+    fontSize: 15,
+    fontWeight: "600",
   },
   greenText: { color: "#0DBA7D" },
   redText: { color: "#F05555" },

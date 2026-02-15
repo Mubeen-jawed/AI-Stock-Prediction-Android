@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useFocusEffect } from "expo-router";
 import {
   Pressable,
@@ -12,8 +12,9 @@ import {
   View,
 } from "react-native";
 import { PieChart } from "react-native-gifted-charts";
+import { API_URL } from "../../../config/config";
 // import { LinearGradient } from "expo-linear-gradient";
-
+import PortfolioPredictionGraph from "../../../components/PortfolioPredictionGraph";
 import PortfolioSummaryCard from "../../../components/PortfolioSummaryCard";
 import PositionRow from "../../../components/PositionRow";
 import SkeletonLoader from "../../../components/SkeletonLoader";
@@ -24,9 +25,35 @@ import { useData } from "../../../context/DataContext";
 export default function PortfolioScreen() {
   const [portfolio, setPortfolio] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [portfolioData, setPortfolioData] = useState(null);
+  const [predictionsLoading, setPredictionsLoading] = useState(false);
+
   const router = useRouter();
   const { token } = useAuth();
   const { setApiData } = useData();
+
+  useEffect(() => {
+    fetchPortfolioPredictions();
+  }, []);
+
+  const fetchPortfolioPredictions = async () => {
+    try {
+      setPredictionsLoading(true);
+
+      const response = await fetch(`${API_URL}/api/portfolio/prediction`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+      setPortfolioData(data);
+    } catch (error) {
+      console.error("Error fetching portfolio predictions:", error);
+    } finally {
+      setPredictionsLoading(false);
+    }
+  };
 
   async function load() {
     try {
@@ -44,7 +71,7 @@ export default function PortfolioScreen() {
   useFocusEffect(
     useCallback(() => {
       load();
-    }, [token])
+    }, [token]),
   );
 
   function getColorFromSymbol(symbol) {
@@ -122,6 +149,7 @@ export default function PortfolioScreen() {
                     data={pieData}
                     radius={60}
                     innerRadius={40}
+                    innerCircleColor="#141414"
                     donut
                     showText={false}
                   />
@@ -140,7 +168,7 @@ export default function PortfolioScreen() {
                         ]}
                       />
                       <Text style={styles.legendText}>
-                        {d.symbol} • ${d.value.toFixed(2)}
+                        {d.symbol} • Rs.{d.value.toFixed(2)}
                       </Text>
                     </View>
                   ))}
@@ -150,14 +178,12 @@ export default function PortfolioScreen() {
 
             {/* AI predictions card (fake line chart box for now) */}
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>AI Predictions</Text>
-              <Text style={styles.cardSub}>
-                Expected growth over the next 30 days
-              </Text>
-              <View style={styles.chartBox} />
-              <Text style={styles.hint}>
-                Will Add AI Predictions based on user Portfolio
-              </Text>
+              {/* Your other components */}
+
+              <PortfolioPredictionGraph
+                portfolioData={portfolioData}
+                loading={predictionsLoading}
+              />
             </View>
 
             {/* Positions list */}
@@ -226,7 +252,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: "#141414",
     borderRadius: 16,
-    marginHorizontal: 16,
+    marginHorizontal: 6,
     marginTop: 16,
     padding: 16,
   },
