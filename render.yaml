@@ -3,7 +3,7 @@ services:
     name: stock-predict-api
     runtime: docker
     rootDir: backend/ai-models/price-prediction
-    dockerfilePath: backend/ai-models/price-prediction/Dockerfile
+    dockerfilePath: ./Dockerfile
     plan: free
     healthCheckPath: /health
     envVars:
