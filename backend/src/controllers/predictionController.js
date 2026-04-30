@@ -31,9 +31,9 @@ const predictPriceController = async (req, res) => {
     BASE_DIR,
     "ai-models",
     "price-prediction",
-    ".venv",
-    "Scripts",
-    "python.exe"
+    "venv",
+    "bin",
+    "python"
   );
 
   const scriptPath = path.resolve(

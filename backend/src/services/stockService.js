@@ -1,8 +1,13 @@
 const axios = require("axios");
+const https = require("https");
 const dotenv = require("dotenv");
 const cheerio = require("cheerio");
 
 dotenv.config();
+
+// Force IPv4 — Yahoo Finance over IPv6 is unreachable on many networks and
+// causes axios to ETIMEDOUT instead of falling back like curl does.
+const ipv4Agent = new https.Agent({ family: 4, keepAlive: true });
 
 const FINNHUB_BASE = "https://finnhub.io/api/v1";
 
@@ -193,14 +198,13 @@ const fetchPSXData = async (filterKSE30 = false) => {
     "CPHL",
     "DGKC",
     "EFERT",
-    "ENGRO",
     "FCCL",
     "FFL",
     "FFC",
     "GHNI",
     "GLAXO",
     "HUBC",
-    "ICL",
+    "ISL",
     "LUCK",
     "MARI",
     "MEBL",
@@ -211,7 +215,7 @@ const fetchPSXData = async (filterKSE30 = false) => {
     "PRL",
     "PPL",
     "PSO",
-    "SAWEW",
+    "SAZEW",
     "SEARL",
     "SNGP",
     "SSGC",
@@ -226,14 +230,13 @@ const fetchPSXData = async (filterKSE30 = false) => {
     CPHL: "cphl.com.pk",
     DGKC: "dgcement.com",
     EFERT: "engrofertilizers.com",
-    ENGRO: "engro.com",
     FCCL: "fcccl.com",
     FFL: "ffbl.com",
     FFC: "ffc.com.pk",
     GHNI: "ghni.com.pk",
     GLAXO: "gsk.com",
     HUBC: "hubpower.com",
-    ICL: "ici.com.pk",
+    ISL: "isl.com.pk",
     LUCK: "lucky-cement.com",
     MARI: "maripetroleum.com",
     MEBL: "meezanbank.com",
@@ -244,7 +247,7 @@ const fetchPSXData = async (filterKSE30 = false) => {
     PRL: "prl.com.pk",
     PPL: "ppl.com.pk",
     PSO: "psopk.com",
-    SAWEW: "sngpl.com.pk",
+    SAZEW: "sazew.com.pk",
     SEARL: "searlecompany.com",
     SNGP: "sngpl.com.pk",
     SSGC: "ssgc.com.pk",
@@ -355,94 +358,124 @@ const fetchPSXData = async (filterKSE30 = false) => {
     .filter((item) => item !== null);
 };
 
-const getPSXHistory = async (symbol, range = "1mo", interval = "1d") => {
-  const yahooSymbol = `${symbol.toUpperCase()}.KA`;
-
+const fetchYahooCandles = async (yahooSymbol, range, interval) => {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}`;
 
-  try {
-    const response = await axios.get(url, {
-      params: {
-        interval: interval,
-        range: range,
-      },
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-      },
-      timeout: 10000, // 10 second timeout
-    });
+  const response = await axios.get(url, {
+    params: { interval, range, includePrePost: false },
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      Accept: "application/json,text/javascript,*/*;q=0.9",
+      "Accept-Language": "en-US,en;q=0.9",
+      Referer: `https://finance.yahoo.com/quote/${yahooSymbol}`,
+    },
+    timeout: 12000,
+    httpsAgent: ipv4Agent,
+    validateStatus: () => true, // we'll inspect status manually
+  });
 
-    const result = response.data?.chart?.result?.[0];
-
-    if (!result) {
-      throw new Error(`No data found for ${symbol}`);
-    }
-
-    const timestamps = result.timestamp;
-    const quote = result.indicators.quote[0];
-
-    if (!timestamps || !quote) {
-      return {
-        symbol: symbol.toUpperCase(),
-        source: "Yahoo Finance",
-        range,
-        interval,
-        count: 0,
-        history: [],
-      };
-    }
-
-    // Filter and format the data
-    const history = timestamps
-      .map((ts, i) => {
-        // Skip invalid candles
-        if (
-          quote.open[i] == null ||
-          quote.high[i] == null ||
-          quote.low[i] == null ||
-          quote.close[i] == null
-        ) {
-          return null;
-        }
-
-        return {
-          timestamp: new Date(ts * 1000).toISOString(),
-          open: quote.open[i],
-          high: quote.high[i],
-          low: quote.low[i],
-          close: quote.close[i],
-          volume: quote.volume[i] || 0,
-        };
-      })
-      .filter(Boolean); // Remove null entries
-
-    console.log(
-      `Fetched ${history.length} candles for ${symbol} (range: ${range}, interval: ${interval})`,
-    );
-
-    return {
-      symbol: symbol.toUpperCase(),
-      source: "Yahoo Finance",
-      range,
-      interval,
-      count: history.length,
-      history,
-    };
-  } catch (err) {
-    console.error(`Error fetching history for ${symbol}:`, err.message);
-
-    // Handle specific errors
-    if (err.response?.status === 404) {
-      throw new Error(`Stock ${symbol} not found`);
-    }
-
-    if (err.code === "ECONNABORTED") {
-      throw new Error("Request timeout - Yahoo Finance is slow");
-    }
-
-    throw new Error(`Failed to fetch history for ${symbol}: ${err.message}`);
+  if (response.status >= 400) {
+    const detail =
+      response.data?.chart?.error?.description ||
+      response.data?.finance?.error?.description ||
+      `HTTP ${response.status}`;
+    const e = new Error(detail);
+    e.status = response.status;
+    throw e;
   }
+
+  const result = response.data?.chart?.result?.[0];
+  if (!result) return [];
+
+  const timestamps = result.timestamp;
+  const quote = result.indicators?.quote?.[0];
+  if (!timestamps || !quote) return [];
+
+  return timestamps
+    .map((ts, i) => {
+      if (
+        quote.open?.[i] == null ||
+        quote.high?.[i] == null ||
+        quote.low?.[i] == null ||
+        quote.close?.[i] == null
+      ) {
+        return null;
+      }
+      return {
+        timestamp: new Date(ts * 1000).toISOString(),
+        open: quote.open[i],
+        high: quote.high[i],
+        low: quote.low[i],
+        close: quote.close[i],
+        volume: quote.volume?.[i] || 0,
+      };
+    })
+    .filter(Boolean);
+};
+
+// Fallback ladder: if requested combo returns no candles (e.g. intraday on
+// closed-market days), try progressively wider/coarser combos until we get data.
+const FALLBACK_LADDER = {
+  "1d/15m": [["5d", "30m"], ["1mo", "1d"]],
+  "5d/30m": [["1mo", "1d"]],
+  "1mo/1d": [["3mo", "1d"]],
+  "6mo/1d": [["1y", "1d"]],
+  "1y/1d": [["2y", "1d"]],
+  "max/1d": [["5y", "1d"]],
+};
+
+const getPSXHistory = async (symbol, range = "1mo", interval = "1d") => {
+  const yahooSymbol = `${symbol.toUpperCase()}.KA`;
+  const attempts = [[range, interval], ...(FALLBACK_LADDER[`${range}/${interval}`] || [])];
+
+  let lastErr = null;
+  for (const [r, iv] of attempts) {
+    try {
+      const history = await fetchYahooCandles(yahooSymbol, r, iv);
+      if (history.length > 0) {
+        const usedFallback = r !== range || iv !== interval;
+        console.log(
+          `Fetched ${history.length} candles for ${symbol} (${r}/${iv})${usedFallback ? " [fallback]" : ""}`,
+        );
+        return {
+          symbol: symbol.toUpperCase(),
+          source: "Yahoo Finance",
+          range: r,
+          interval: iv,
+          requestedRange: range,
+          requestedInterval: interval,
+          fallback: usedFallback,
+          count: history.length,
+          history,
+        };
+      }
+    } catch (err) {
+      lastErr = err;
+      console.error(
+        `Yahoo fetch failed for ${symbol} (${r}/${iv}):`,
+        err.status || err.code || "",
+        err.message,
+      );
+      if (err.status === 404) {
+        throw new Error(`Stock ${symbol} not found`);
+      }
+    }
+  }
+
+  if (lastErr) {
+    throw new Error(`Failed to fetch history for ${symbol}: ${lastErr.message}`);
+  }
+
+  // No error, just no data anywhere on the ladder
+  return {
+    symbol: symbol.toUpperCase(),
+    source: "Yahoo Finance",
+    range,
+    interval,
+    count: 0,
+    history: [],
+  };
 };
 
 // Helper function to get current stock data (for completeness)

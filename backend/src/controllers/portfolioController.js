@@ -99,12 +99,12 @@ const deletePortfolio = async (req, res) => {
 };
 
 const getPortfolioPerformance = async (req, res) => {
-  const id = new mongoose.Types.ObjectId("691c5a7e4f4c587be5601d38");
-
   try {
-    // 1) Get portfolio from DB for this user
+    if (!req.user?._id) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
 
-    const portfolio = await Portfolio.findOne({ user: id });
+    const portfolio = await Portfolio.findOne({ user: req.user._id });
 
     if (!portfolio || !portfolio.stocks || portfolio.stocks.length === 0) {
       return res.json({ portfolio: [] });
@@ -189,16 +189,11 @@ const getPortfolioPrediction = async (req, res) => {
   try {
     const { days = 7, modelType = "lstm" } = req.query;
 
-    // For testing without auth, allow passing userId
-    const id = new mongoose.Types.ObjectId("691c5a7e4f4c587be5601d38");
-
-    if (!id) {
-      return res
-        .status(400)
-        .json({ message: "User ID required (auth disabled)" });
+    if (!req.user?._id) {
+      return res.status(401).json({ message: "Not authenticated" });
     }
 
-    const portfolio = await Portfolio.findOne({ user: id });
+    const portfolio = await Portfolio.findOne({ user: req.user._id });
 
     if (!portfolio || !portfolio.stocks || portfolio.stocks.length === 0) {
       return res.json({

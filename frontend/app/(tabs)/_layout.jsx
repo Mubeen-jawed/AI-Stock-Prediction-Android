@@ -1,4 +1,4 @@
-import { Tabs } from "expo-router";
+import { Tabs, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { View } from "react-native";
 
@@ -40,6 +40,12 @@ export default function TabsLayout() {
           tabBarIcon: ({ color }) => (
             <Ionicons name="stats-chart-outline" size={22} color={color} />
           ),
+        }}
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            router.replace("/(tabs)/stocks");
+          },
         }}
       />
 

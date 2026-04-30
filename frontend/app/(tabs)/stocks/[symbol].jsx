@@ -381,6 +381,8 @@ export default function StockDetailScreen() {
       : predictions?.predictions || [];
   };
 
+  const predictionMeta = predictions?.meta ?? null;
+
   // Calculate predictChange with proper checks
   const predictionArray = getPredictionArray(predictions);
   const predictChange = calculatePredictChange(
@@ -548,6 +550,143 @@ export default function StockDetailScreen() {
             loading={predictionsLoading}
             predictions={predictions}
           />
+          {predictionMeta && (
+            <View style={styles.card}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginBottom: 4,
+                }}
+              >
+                <Ionicons name="information-circle" size={16} color="#87CEEB" />
+                <Text style={[styles.cardTitle, { marginLeft: 6, marginBottom: 0 }]}>
+                  How we predict
+                </Text>
+              </View>
+              <Text
+                style={{
+                  color: "#A7B1BC",
+                  fontSize: 12,
+                  lineHeight: 17,
+                  marginBottom: 12,
+                }}
+              >
+                Forecasts come from a recurrent neural network ({predictionMeta.model.type}) trained on {symbol}&apos;s historical daily closing prices. It looks at the last {predictionMeta.model.lookback_days} trading days to project the next {predictionArray.length} days.
+              </Text>
+
+              <Text style={[styles.cardSubTitle, { marginBottom: 6 }]}>
+                Model
+              </Text>
+              <View style={styles.metaRow}>
+                <Text style={styles.metaLabel}>Type</Text>
+                <Text style={styles.metaValue}>{predictionMeta.model.type}</Text>
+              </View>
+              <View style={styles.metaRow}>
+                <Text style={styles.metaLabel}>Architecture</Text>
+                <Text style={styles.metaValue} numberOfLines={2}>
+                  {predictionMeta.model.architecture}
+                </Text>
+              </View>
+              <View style={styles.metaRow}>
+                <Text style={styles.metaLabel}>Framework</Text>
+                <Text style={styles.metaValue}>
+                  {predictionMeta.model.framework}
+                </Text>
+              </View>
+              <View style={styles.metaRow}>
+                <Text style={styles.metaLabel}>Lookback</Text>
+                <Text style={styles.metaValue}>
+                  {predictionMeta.model.lookback_days} days
+                </Text>
+              </View>
+              {predictionMeta.model.last_trained && (
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaLabel}>Last trained</Text>
+                  <Text style={styles.metaValue}>
+                    {predictionMeta.model.last_trained}
+                  </Text>
+                </View>
+              )}
+
+              <Text
+                style={[
+                  styles.cardSubTitle,
+                  { marginTop: 14, marginBottom: 6 },
+                ]}
+              >
+                Training data
+              </Text>
+              <View style={styles.metaRow}>
+                <Text style={styles.metaLabel}>Rows</Text>
+                <Text style={styles.metaValue}>
+                  {predictionMeta.training_data.rows}
+                </Text>
+              </View>
+              <View style={styles.metaRow}>
+                <Text style={styles.metaLabel}>Range</Text>
+                <Text style={styles.metaValue}>
+                  {predictionMeta.training_data.from} →{" "}
+                  {predictionMeta.training_data.to}
+                </Text>
+              </View>
+
+              <Text
+                style={[
+                  styles.cardSubTitle,
+                  { marginTop: 14, marginBottom: 6 },
+                ]}
+              >
+                Recent input signals (last {predictionMeta.model.lookback_days}d)
+              </Text>
+              <View style={styles.metaRow}>
+                <Text style={styles.metaLabel}>Last close</Text>
+                <Text style={styles.metaValue}>
+                  {predictionMeta.input_stats.last_close.toFixed(2)}
+                </Text>
+              </View>
+              <View style={styles.metaRow}>
+                <Text style={styles.metaLabel}>60d mean</Text>
+                <Text style={styles.metaValue}>
+                  {predictionMeta.input_stats.mean_60d.toFixed(2)}
+                </Text>
+              </View>
+              <View style={styles.metaRow}>
+                <Text style={styles.metaLabel}>60d std dev</Text>
+                <Text style={styles.metaValue}>
+                  {predictionMeta.input_stats.stddev_60d.toFixed(2)}
+                </Text>
+              </View>
+              <View style={styles.metaRow}>
+                <Text style={styles.metaLabel}>60d range</Text>
+                <Text style={styles.metaValue}>
+                  {predictionMeta.input_stats.min_60d.toFixed(2)} –{" "}
+                  {predictionMeta.input_stats.max_60d.toFixed(2)}
+                </Text>
+              </View>
+              {predictionMeta.input_stats.pct_change_30d != null && (
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaLabel}>30d change</Text>
+                  <Text
+                    style={[
+                      styles.metaValue,
+                      {
+                        color:
+                          predictionMeta.input_stats.pct_change_30d >= 0
+                            ? "#22c55e"
+                            : "#ef4444",
+                      },
+                    ]}
+                  >
+                    {predictionMeta.input_stats.pct_change_30d >= 0 ? "+" : ""}
+                    {predictionMeta.input_stats.pct_change_30d.toFixed(2)}%
+                  </Text>
+                </View>
+              )}
+
+              
+            </View>
+          )}
           {predictionArray.length > 0 && stock && (
             <>
               {/* AI Overview Card */}
@@ -815,6 +954,33 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     marginBottom: 14,
+  },
+  cardSubTitle: {
+    color: "#E6EEF8",
+    fontSize: 13,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  metaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: "#1c1f24",
+  },
+  metaLabel: {
+    color: "#8B96A5",
+    fontSize: 12,
+    flex: 1,
+  },
+  metaValue: {
+    color: "#E6EEF8",
+    fontSize: 12,
+    fontWeight: "500",
+    textAlign: "right",
+    flex: 1.4,
   },
 
   /** GRID */

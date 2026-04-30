@@ -32,10 +32,6 @@ export default function PortfolioScreen() {
   const { token } = useAuth();
   const { setApiData } = useData();
 
-  useEffect(() => {
-    fetchPortfolioPredictions();
-  }, []);
-
   const fetchPortfolioPredictions = async () => {
     try {
       setPredictionsLoading(true);
@@ -71,6 +67,7 @@ export default function PortfolioScreen() {
   useFocusEffect(
     useCallback(() => {
       load();
+      fetchPortfolioPredictions();
     }, [token]),
   );
 
@@ -102,25 +99,20 @@ export default function PortfolioScreen() {
     return <SkeletonLoader />;
   }
 
-  if (
-    portfolio?.distribution?.length === 0 &&
-    portfolio?.summary?.length === 0
-  ) {
+  if (!portfolio?.positions?.length) {
     return (
       <View style={styles.emptyScreen}>
+        <Text style={styles.emptyTitle}>Your portfolio is empty</Text>
+        <Text style={styles.emptyText}>
+          Add your first holding to track performance and see AI forecasts.
+        </Text>
         <TouchableOpacity
-          style={styles.emptyContainer}
-          activeOpacity={0.9}
+          style={styles.emptyButton}
+          activeOpacity={0.85}
           onPress={() => router.push("/portfolio/add-stock")}
         >
-          <Ionicons
-            name="add"
-            size={28}
-            color="#FFD700"
-            style={styles.emptyIcon}
-          />
-
-          <Text style={styles.emptyText}>Add portfolio to get started</Text>
+          <Ionicons name="add" size={20} color="#141414" />
+          <Text style={styles.emptyButtonText}>Add Portfolio</Text>
         </TouchableOpacity>
       </View>
     );
@@ -301,31 +293,50 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: 32,
     backgroundColor: "#070707",
   },
-
-  emptyContainer: {
-    width: "100%",
-    maxWidth: 320,
-    paddingVertical: 28,
-    borderRadius: 18,
+  emptyIllustration: {
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    backgroundColor: "rgba(255, 215, 0, 0.08)",
     borderWidth: 1,
-    borderColor: "rgba(255, 215, 0, 0.6)",
+    borderColor: "rgba(255, 215, 0, 0.25)",
+    justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "transparent",
+    marginBottom: 24,
   },
-
-  emptyIcon: {
-    marginBottom: 10,
-    opacity: 0.85,
+  emptyTitle: {
+    fontSize: 18,
+    color: "#E8EAED",
+    fontWeight: "700",
+    marginBottom: 8,
+    textAlign: "center",
   },
-
   emptyText: {
-    fontSize: 14,
+    fontSize: 13,
     color: "#A9A9A9",
     fontWeight: "400",
     letterSpacing: 0.2,
+    textAlign: "center",
+    lineHeight: 19,
+    marginBottom: 24,
+    maxWidth: 280,
+  },
+  emptyButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFD700",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 24,
+  },
+  emptyButtonText: {
+    color: "#141414",
+    fontWeight: "700",
+    marginLeft: 6,
+    fontSize: 14,
   },
   more: { color: "#FFD700", alignSelf: "center", marginVertical: 12 },
 });

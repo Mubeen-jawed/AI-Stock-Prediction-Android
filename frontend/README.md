@@ -48,3 +48,27 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+
+
+cd backend/ai-models/price-prediction
+  iconv -f UTF-16 -t UTF-8 requirements.txt | sed 's/\r$//' >
+  requirements.utf8.txt                                                         
+  
+  Then create a venv and install. The deps include TensorFlow, Prophet          
+  (cmdstanpy), yfinance, FastAPI, etc. — recommend Python 3.11 (TF 2.16 / numpy
+  1.26 don't support 3.13):                                                     
+                  
+  python3.11 -m venv venv
+  source venv/bin/activate
+  pip install --upgrade pip
+  pip install -r requirements.utf8.txt
+
+  Note: tensorflow-intel==2.16.1 is Windows-only — if install fails on Linux,   
+  drop that line. Prophet also needs a working C++ toolchain (build-essential).
+                                                                                
+  Run the API (FastAPI app is app/main.py, no __main__ block — use uvicorn      
+  directly; commented code suggests port 8001):
+                                                                                
+  uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
+
+  Health check: curl http://localhost:8001/health

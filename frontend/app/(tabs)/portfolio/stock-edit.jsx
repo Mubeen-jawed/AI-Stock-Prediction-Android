@@ -39,7 +39,7 @@ const formatPct = (n) => {
 
 export default function EditPortfolioScreen() {
   // Replace this with your fetched portfolio rows
-  const { apiData } = useData();
+  const { apiData, setApiData } = useData();
   const { token } = useAuth();
 
   const router = useRouter();
@@ -110,19 +110,32 @@ export default function EditPortfolioScreen() {
   };
 
   const deleteRow = async (symbol) => {
+    const prevRows = rows;
+    const prevApiData = apiData;
+
+    // Optimistic UI: remove from both local rows and shared context
     setRows((p) => p.filter((r) => r.symbol !== symbol));
+    if (Array.isArray(apiData)) {
+      setApiData(apiData.filter((r) => r.symbol !== symbol));
+    }
 
     try {
-      await fetch(`${API_URL}/api/portfolio/${symbol}`, {
+      const res = await fetch(`${API_URL}/api/portfolio/${symbol}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.message || `Delete failed (${res.status})`);
+      }
     } catch (e) {
-      // rollback UI if failed
+      // Roll back both UI and context on failure
       setRows(prevRows);
-      Alert.alert("Error", e?.response?.data?.message || "Delete failed");
+      setApiData(prevApiData);
+      Alert.alert("Error", e?.message || "Delete failed");
     }
   };
 

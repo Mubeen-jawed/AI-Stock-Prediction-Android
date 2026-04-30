@@ -10,12 +10,12 @@ const {
 
 const router = express.Router();
 
-router.get("/", getPortfolioPerformance);
+router.get("/", protect, getPortfolioPerformance);
 // router.post("/", protect, createPortfolio);
 router.post("/", protect, createPortfolio);
 router.delete("/:symbol", protect, deletePortfolio);
 router.put("/update-holdings", protect, updateHoldings);
 // router.get("/prediction", protect, getPortfolioPrediction);
-router.get("/prediction", getPortfolioPrediction);
+router.get("/prediction", protect, getPortfolioPrediction);
 
 module.exports = router;

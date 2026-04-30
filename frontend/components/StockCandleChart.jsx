@@ -26,32 +26,17 @@ function toMsTimestamp(t) {
  * Intelligently downsample candles to optimal count for clean rendering
  * Uses bucketing to preserve price action while reducing clutter
  */
+const SLOT_WIDTH = 6;
+
 function optimizeCandles(candles, rangeKey, chartWidth) {
   if (!Array.isArray(candles) || candles.length === 0) return [];
 
-  // Determine optimal candle count based on range and screen width
-  let targetCount;
-  switch (rangeKey) {
-    case "1D":
-      targetCount = Math.min(80, candles.length); // Show more detail for intraday
-      break;
-    case "5D":
-      targetCount = Math.min(100, candles.length);
-      break;
-    case "1M":
-      targetCount = Math.min(60, candles.length);
-      break;
-    case "6M":
-      targetCount = Math.min(80, candles.length);
-      break;
-    case "1Y":
-      targetCount = Math.min(100, candles.length);
-      break;
-    default: // ALL
-      targetCount = Math.min(120, candles.length);
-  }
+  // Uniform density across all ranges: one candle per ~SLOT_WIDTH px of chart.
+  const targetCount = Math.max(
+    20,
+    Math.min(candles.length, Math.floor(chartWidth / SLOT_WIDTH)),
+  );
 
-  // If we have fewer candles than target, return all
   if (candles.length <= targetCount) return candles;
 
   // Calculate bucket size
@@ -285,6 +270,11 @@ export default function StockCandleChart({ chart, loading, rangeKey }) {
     );
   }
 
+  const fallbackNotice =
+    chart?.fallback && chart?.range && chart?.requestedRange
+      ? `Showing ${chart.range}/${chart.interval} (intraday data unavailable for ${chart.requestedRange})`
+      : null;
+
   return (
     <View
       style={{
@@ -293,6 +283,18 @@ export default function StockCandleChart({ chart, loading, rangeKey }) {
         paddingBottom: 16,
       }}
     >
+      {fallbackNotice && (
+        <Text
+          style={{
+            color: "#8B96A5",
+            fontSize: 10,
+            paddingHorizontal: PADDING_H,
+            paddingTop: 10,
+          }}
+        >
+          {fallbackNotice}
+        </Text>
+      )}
       <CandlestickChart.Provider data={displayCandles}>
         {/* Crosshair labels */}
         <View
@@ -326,11 +328,12 @@ export default function StockCandleChart({ chart, loading, rangeKey }) {
               <CandlestickChart.Candles
                 positiveColor="#22c55e"
                 negativeColor="#ef4444"
-                // Adjust candle width based on data density
-                candleWidth={Math.max(
-                  2,
-                  Math.min(8, CHART_W / displayCandles.length - 1),
-                )}
+                // Fill the slot width fully so adjacent candles touch (no gaps).
+                candleWidth={
+                  displayCandles.length > 0
+                    ? CHART_W / displayCandles.length
+                    : SLOT_WIDTH
+                }
               />
               <CandlestickChart.Crosshair>
                 <CandlestickChart.Tooltip

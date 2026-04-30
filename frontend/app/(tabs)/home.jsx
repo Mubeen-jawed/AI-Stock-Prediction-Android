@@ -10,8 +10,10 @@ import PromoCard from "../../components/PromoCard";
 import SegmentTabs from "../../components/SegmentTabs";
 import StockRow from "../../components/StockRow";
 import Loader from "../../components/Loader";
+import SkeletonLoader from "../../components/SkeletonLoader";
 import { fetchProfile } from "../../data/profile";
 import { fetchNews } from "../../data/news";
+import { fetchAllStocks } from "../../data/stocks";
 
 import engro from "../../assets/images/stock-logos/engro.png";
 import lucky from "../../assets/images/stock-logos/lucky.png";
@@ -22,9 +24,9 @@ import { useAuth } from "../../context/AuthContext";
 
 const GAINERS = [
   {
-    logo: "engro.com",
-    name: "Engro Corporation",
-    ticker: "ENGRO",
+    logo: "engrofertilizers.com",
+    name: "Engro Fertilizers",
+    ticker: "EFERT",
     price: "295.40",
     vol: "6.2M",
   },
@@ -58,6 +60,7 @@ export default function Home() {
   const [authenticated, setAuthenticated] = useState(false);
   const [newsLoading, setNewsLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(true);
+  const [allStocks, setAllStocks] = useState([]);
 
   const router = useRouter();
   const { user, token } = useAuth();
@@ -81,6 +84,15 @@ export default function Home() {
     load();
   }, [token]);
 
+  useEffect(() => {
+    if (!token) return;
+    fetchAllStocks(token)
+      .then((data) => {
+        if (Array.isArray(data)) setAllStocks(data);
+      })
+      .catch((err) => console.error("Stock list fetch failed:", err));
+  }, [token]);
+
   // console.log(newsItems);
 
   return (
@@ -89,7 +101,7 @@ export default function Home() {
         <View style={styles.screen}>
           <StatusBar style="light" />
           <ScrollView contentContainerStyle={{ paddingBottom: 28 }}>
-            <HomeHeader user={user} />
+            <HomeHeader user={user} stocks={allStocks} />
 
             {/* Onboarding banner (Bybit "Verify Now" → Stock KYC) */}
             {/* <View style={styles.banner}>
@@ -156,8 +168,9 @@ export default function Home() {
           </ScrollView>
         </View>
       ) : (
-        <View style={styles.safe}>
-          <Loader />
+        <View style={styles.screen}>
+          <StatusBar style="light" />
+          <SkeletonLoader />
         </View>
       )}
     </>
