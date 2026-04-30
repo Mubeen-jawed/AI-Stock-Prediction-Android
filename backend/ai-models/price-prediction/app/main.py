@@ -178,12 +178,17 @@ import numpy as np
 import pandas as pd
 from tensorflow.keras.models import load_model
 from datetime import timedelta
-import os
+import os, sys
+
+# Allow importing predict.py / predict_multi from the project root.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from predict import predict_multi  # noqa: E402
 
 app = FastAPI(title="KMI30 Stock Prediction API")
 
-MODEL_PATH = "models"
-DATA_PATH = "data"
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MODEL_PATH = os.path.join(PROJECT_ROOT, "models")
+DATA_PATH = os.path.join(PROJECT_ROOT, "data")
 os.makedirs(DATA_PATH, exist_ok=True)
 
 lookback = 60
@@ -214,42 +219,17 @@ async def predict(req: PredictionRequest):
     symbol = req.symbol.upper()
     days = req.days
     model_type = req.model_type.lower()
-    
+
     try:
         if model_type == "lstm":
-            if symbol not in loaded_models:
-                loaded_models[symbol] = load_model(f"{MODEL_PATH}/{symbol}.keras")
-                loaded_scalers[symbol] = joblib.load(f"{MODEL_PATH}/{symbol}_scaler.pkl")
-            model = loaded_models[symbol]
-            scaler = loaded_scalers[symbol]
-            
-            # Load latest data
-            df = pd.read_csv(f"data/{symbol}.csv", parse_dates=['Date'])
-            prices = df['Close'].values.reshape(-1,1)
-            scaled = scaler.transform(prices)
-            X_input = scaled[-lookback:].reshape(1,lookback,1)
-            
-            predictions = []
-            last_date = df['Date'].iloc[-1]
-            
-            while len(predictions) < days:
-                last_date += timedelta(days=1)
-                if last_date.weekday() >= 5:  # 5 = Saturday, 6 = Sunday
-                    continue
-                    
-                pred_scaled = model.predict(X_input)
-                pred_price = scaler.inverse_transform(pred_scaled)[0][0]
-                
-                predictions.append({
-                    "date": last_date.strftime("%Y-%m-%d"), 
-                    "price": float(pred_price)
-                })
-                
-                # Update input sequence for the next prediction
-                X_input = np.concatenate((X_input[:,1:,:], pred_scaled.reshape(1,1,1)), axis=1)
-            
-            return {"symbol": symbol, "model": "lstm", "predictions": predictions}
-        
+            result = predict_multi(symbol, days)
+            return {
+                "symbol": symbol,
+                "model": "lstm",
+                "predictions": result["predictions"],
+                "meta": result["meta"],
+            }
+
         elif model_type == "prophet":
             if symbol not in loaded_prophet:
                 loaded_prophet[symbol] = joblib.load(f"{MODEL_PATH}/{symbol}_prophet.pkl")
