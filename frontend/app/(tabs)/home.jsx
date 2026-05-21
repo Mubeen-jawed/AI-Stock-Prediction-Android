@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useState, useEffect } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useState, useEffect, useCallback } from "react";
+import { ScrollView, StyleSheet, Text, View, RefreshControl } from "react-native";
 import ActionRow from "../../components/ActionRow";
 import EventsList from "../../components/EventsList";
 import HomeHeader from "../../components/HomeHeader";
@@ -61,6 +61,7 @@ export default function Home() {
   const [newsLoading, setNewsLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(true);
   const [allStocks, setAllStocks] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
 
   const router = useRouter();
   const { user, token } = useAuth();
@@ -80,18 +81,29 @@ export default function Home() {
     setNewsLoading(false);
   }
 
+  const loadStocks = useCallback(async () => {
+    if (!token) return;
+    try {
+      const data = await fetchAllStocks(token);
+      if (Array.isArray(data)) setAllStocks(data);
+    } catch (err) {
+      console.error("Stock list fetch failed:", err);
+    }
+  }, [token]);
+
   useEffect(() => {
     load();
   }, [token]);
 
   useEffect(() => {
-    if (!token) return;
-    fetchAllStocks(token)
-      .then((data) => {
-        if (Array.isArray(data)) setAllStocks(data);
-      })
-      .catch((err) => console.error("Stock list fetch failed:", err));
-  }, [token]);
+    loadStocks();
+  }, [loadStocks]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    Promise.allSettled([load(), loadStocks()]);
+    setTimeout(() => setRefreshing(false), 2000);
+  }, [loadStocks]);
 
   // console.log(newsItems);
 
@@ -100,7 +112,16 @@ export default function Home() {
       {authenticated && !newsLoading && !profileLoading ? (
         <View style={styles.screen}>
           <StatusBar style="light" />
-          <ScrollView contentContainerStyle={{ paddingBottom: 28 }}>
+          <ScrollView
+            contentContainerStyle={{ paddingBottom: 28 }}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor="#FFD700"
+              />
+            }
+          >
             <HomeHeader user={user} stocks={allStocks} />
 
             {/* Onboarding banner (Bybit "Verify Now" → Stock KYC) */}
@@ -124,7 +145,7 @@ export default function Home() {
             {/* <View style={styles.cardRow}>
           <View style={styles.smallCard}>
             <Text style={styles.smallTitle}>Referral Bonus</Text>
-            <Text style={styles.smallSub}>Earn $50 per friend</Text>
+            <Text style={styles.smallSub}>Earn 50 per friend</Text>
           </View>
           <View style={styles.smallCard}>
             <Text style={styles.smallTitle}>IPO Watch</Text>

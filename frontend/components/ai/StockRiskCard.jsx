@@ -1,10 +1,11 @@
-// components/ai/RiskAnalysisCard.jsx
+// components/ai/StockRiskCard.jsx
+// Stock-specific risk breakdown styled to match the AI Insights page.
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 const bandColor = (band) =>
-  band === "High" ? "#EA3943" : band === "Medium" ? "#FFD700" : "#16C784";
+  band === "High" ? "#EA3943" : band === "Medium" ? "#FFD700" : band === "Low" ? "#16C784" : "#9aa0a6";
 
 function Metric({ label, value, color }) {
   return (
@@ -15,9 +16,10 @@ function Metric({ label, value, color }) {
   );
 }
 
-export default function RiskAnalysisCard({ risk }) {
+export default function StockRiskCard({ risk }) {
   if (!risk) return null;
-  const { level, levelColor, volatility, portVolPct, losersPct, holdings, advice } = risk;
+  const { level, levelColor, volatility, drawdown, drawdownPct, beta, advice } =
+    risk;
   return (
     <View style={styles.card}>
       <View style={styles.header}>
@@ -29,17 +31,19 @@ export default function RiskAnalysisCard({ risk }) {
 
       <Metric label="Volatility" value={volatility} color={bandColor(volatility)} />
       <Metric
-        label="Today's stdev"
-        value={`${(portVolPct || 0).toFixed(2)}%`}
-        color="#e8eaed"
+        label="Drawdown Risk"
+        value={
+          drawdownPct != null
+            ? `${drawdown} · -${drawdownPct.toFixed(1)}%`
+            : drawdown
+        }
+        color={bandColor(drawdown)}
       />
-      {holdings > 0 ? (
-        <Metric
-          label="Underwater"
-          value={`${losersPct}% (${holdings} held)`}
-          color={losersPct > 50 ? "#EA3943" : losersPct > 25 ? "#FFD700" : "#16C784"}
-        />
-      ) : null}
+      <Metric
+        label="Market Beta"
+        value={beta != null ? beta.toFixed(2) : "—"}
+        color="#FFD700"
+      />
 
       <Text style={styles.advice}>{advice}</Text>
     </View>

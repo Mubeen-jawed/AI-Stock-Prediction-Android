@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -54,6 +53,7 @@ export default function AIInsights() {
   const onRefresh = () => {
     setRefreshing(true);
     load();
+    setTimeout(() => setRefreshing(false), 2000);
   };
 
   const SentimentRiskRow = () =>
@@ -107,10 +107,7 @@ export default function AIInsights() {
     <View style={styles.screen}>
       <StatusBar style="light" />
 
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>AI Insights</Text>
-        <Ionicons name="sparkles" size={18} color="#FFD700" />
-      </View>
+      <Text style={styles.title}>AI Insights</Text>
 
       <SegmentTabs tabs={TABS} active={tab} onChange={setTab} />
 
@@ -138,15 +135,14 @@ export default function AIInsights() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#0D0D0D", paddingTop: 48 },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingBottom: 4,
+  screen: { flex: 1, backgroundColor: "#0D0D0D", paddingTop: 40 },
+  title: {
+    color: "#e8eaed",
+    fontSize: 20,
+    fontWeight: "700",
+    paddingHorizontal: 16,
+    paddingTop: 12,
   },
-  headerTitle: { color: "#e8eaed", fontSize: 20, fontWeight: "800" },
   row: { flexDirection: "row", gap: 12, marginHorizontal: 16, marginTop: 16 },
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
   loadingTxt: { color: "#9aa0a6", marginTop: 12, fontSize: 13 },

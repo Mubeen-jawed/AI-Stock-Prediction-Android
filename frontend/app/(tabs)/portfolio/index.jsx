@@ -5,6 +5,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useFocusEffect } from "expo-router";
 import {
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -27,6 +28,7 @@ export default function PortfolioScreen() {
   const [loading, setLoading] = useState(false);
   const [portfolioData, setPortfolioData] = useState(null);
   const [predictionsLoading, setPredictionsLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const router = useRouter();
   const { token } = useAuth();
@@ -70,6 +72,12 @@ export default function PortfolioScreen() {
       fetchPortfolioPredictions();
     }, [token]),
   );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    Promise.allSettled([load(), fetchPortfolioPredictions()]);
+    setTimeout(() => setRefreshing(false), 2000);
+  }, [token]);
 
   function getColorFromSymbol(symbol) {
     let hash = 0;
@@ -121,7 +129,16 @@ export default function PortfolioScreen() {
   return (
     <View style={styles.screen}>
       <StatusBar style="light" />
-      <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 100 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#FFD700"
+          />
+        }
+      >
         <Text style={styles.title}>Portfolio</Text>
 
         {loading ? (

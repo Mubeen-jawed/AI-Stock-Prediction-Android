@@ -28,7 +28,7 @@ const YELLOW = "#FFD700";
 const formatMoney = (n) => {
   const num = Number(n);
   if (!Number.isFinite(num)) return "—";
-  return `$${num.toFixed(2)}`;
+  return num.toFixed(2);
 };
 
 const formatPct = (n) => {
@@ -209,7 +209,7 @@ export default function EditPortfolioScreen() {
                 updateRow(r.symbol, { avgPrice: t.replace(/[^0-9.]/g, "") })
               }
               keyboardType="decimal-pad"
-              placeholder="$0.00"
+              placeholder="0.00"
               placeholderTextColor="#666"
               style={styles.input}
             />

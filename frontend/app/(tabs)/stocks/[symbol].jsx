@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   View,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -16,6 +17,11 @@ import Loader from "../../../components/Loader";
 import StockCandleChart from "../../../components/StockCandleChart";
 import PredictiveGraph from "../../../components/PredictiveGraph";
 import StockAISignal from "../../../components/ai/StockAISignal";
+import StockSmartSummaryCard from "../../../components/ai/StockSmartSummaryCard";
+import StockRiskCard from "../../../components/ai/StockRiskCard";
+import MarketSentimentCard from "../../../components/ai/MarketSentimentCard";
+import AIInsightsFeed from "../../../components/ai/AIInsightsFeed";
+import { loadStockAIInsights } from "../../../data/stockAIInsights";
 
 const TIME_RANGES = ["1M", "6M", "1Y", "ALL"];
 
@@ -46,6 +52,16 @@ export default function StockDetailScreen() {
 
   const [predictions, setPredictions] = useState(null);
   const [predictionsLoading, setPredictionsLoading] = useState(false);
+  const [predictionsError, setPredictionsError] = useState(null);
+  const [predictionsWarming, setPredictionsWarming] = useState(false);
+  const [predictionsRetry, setPredictionsRetry] = useState(0);
+
+  const [aiInsights, setAiInsights] = useState(null);
+  const [aiInsightsLoading, setAiInsightsLoading] = useState(false);
+
+  const [howWePredictOpen, setHowWePredictOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshTick, setRefreshTick] = useState(0);
 
   // Chart Fetch
   useEffect(() => {
@@ -71,7 +87,7 @@ export default function StockDetailScreen() {
     };
 
     fetchChart();
-  }, [symbol, token, selectedRange]);
+  }, [symbol, token, selectedRange, refreshTick]);
 
   //Single Stock Fetch
   useEffect(() => {
@@ -108,7 +124,7 @@ export default function StockDetailScreen() {
     };
 
     fetchStock();
-  }, [symbol, token]);
+  }, [symbol, token, refreshTick]);
 
   // console.log(stock);
 
@@ -145,47 +161,130 @@ export default function StockDetailScreen() {
     };
 
     if (token && symbol) checkWatchlist();
-  }, [token, symbol]);
+  }, [token, symbol, refreshTick]);
 
   //Predictions
+  // The model server runs on Render free tier and sleeps after ~15 min of
+  // inactivity. The first request after a sleep cold-starts TensorFlow and
+  // can exceed the Node backend's 90s upstream timeout, producing a 502.
+  // We retry the request once after a short pause — by then the service
+  // is warm and the second attempt succeeds.
   useEffect(() => {
-    // Guard: only fetch if we have a symbol
     if (!symbol) return;
+    let cancelled = false;
+    const MAX_ATTEMPTS = 3;
+    const sleep = (ms) =>
+      new Promise((r) => {
+        const t = setTimeout(r, ms);
+        return t;
+      });
 
-    const fetchPredictions = async () => {
-      try {
-        setPredictionsLoading(true);
-
-        console.log("Fetching predictions for:", symbol);
-
-        const res = await fetch(
-          `${API_URL}/predict/${symbol}?days=10&modelType=lstm`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          },
-        );
-
-        if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`);
-        }
-
-        const data = await res.json();
-
-        console.log("Predictions received:", data);
-        setPredictions(data);
-      } catch (err) {
-        console.error("Prediction fetch error:", err);
-        setPredictions(null); // Clear on error
-      } finally {
-        setPredictionsLoading(false);
+    const fetchOnce = async () => {
+      const res = await fetch(
+        `${API_URL}/predict/${symbol}?days=10&modelType=lstm`,
+        { method: "POST", headers: { "Content-Type": "application/json" } },
+      );
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        const err = new Error(`HTTP ${res.status}: ${body || res.statusText}`);
+        err.status = res.status;
+        throw err;
       }
+      return res.json();
     };
 
-    fetchPredictions();
-  }, [symbol]);
+    const run = async () => {
+      setPredictionsLoading(true);
+      setPredictionsError(null);
+      setPredictionsWarming(false);
+
+      let lastErr = null;
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        if (cancelled) return;
+        try {
+          const data = await fetchOnce();
+          if (cancelled) return;
+          setPredictions(data);
+          setPredictionsError(null);
+          setPredictionsWarming(false);
+          setPredictionsLoading(false);
+          return;
+        } catch (err) {
+          lastErr = err;
+          // 502/503/504 + network errors are typical of the Python service
+          // cold-starting on Render — retry. Other statuses (400/404/500
+          // from a real model error) are not worth retrying.
+          const retryable =
+            err.status == null ||
+            err.status === 502 ||
+            err.status === 503 ||
+            err.status === 504;
+          if (!retryable || attempt === MAX_ATTEMPTS) break;
+          if (!cancelled) setPredictionsWarming(true);
+          // 6s, then 14s — gives the model server time to load TensorFlow.
+          await sleep(attempt === 1 ? 6000 : 14000);
+        }
+      }
+
+      if (cancelled) return;
+      console.error("Prediction fetch error:", lastErr);
+      setPredictions(null);
+      setPredictionsError(
+        lastErr?.status === 502 || lastErr?.status === 503 || lastErr?.status === 504
+          ? "Prediction service is waking up. Please try again in a moment."
+          : lastErr?.message?.includes("404") ||
+              lastErr?.message?.includes("missing")
+            ? `No trained model is available for ${symbol} yet.`
+            : "Couldn't load AI predictions right now.",
+      );
+      setPredictionsWarming(false);
+      setPredictionsLoading(false);
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [symbol, refreshTick, predictionsRetry]);
+
+  // AI Insights (stock-specific): loads once we have the live quote so we can
+  // build the smart summary, market sentiment, risk panel, and feed.
+  useEffect(() => {
+    if (!stock || !token) return;
+    let cancelled = false;
+
+    const predictionArray = Array.isArray(predictions)
+      ? predictions
+      : predictions?.predictions || [];
+    const last = predictionArray[predictionArray.length - 1];
+    const current = Number(stock?.price ?? stock?.open ?? stock?.close);
+    const future = last ? Number(last.price) : NaN;
+    const predictChange =
+      Number.isFinite(current) && current > 0 && Number.isFinite(future)
+        ? (future / current - 1) * 100
+        : null;
+
+    (async () => {
+      try {
+        setAiInsightsLoading(true);
+        const result = await loadStockAIInsights({
+          token,
+          stock,
+          predictions,
+          predictChange,
+        });
+        if (!cancelled) setAiInsights(result);
+      } catch (e) {
+        console.log("Stock AI insights error:", e);
+      } finally {
+        if (!cancelled) setAiInsightsLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [stock, predictions, token]);
 
   console.log(predictions);
 
@@ -251,6 +350,12 @@ export default function StockDetailScreen() {
   //     price: 274.6465759277344,
   //   },
   // ];
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setRefreshTick((t) => t + 1);
+    setTimeout(() => setRefreshing(false), 2000);
+  }, []);
 
   const positive = stock?.change >= 0;
 
@@ -433,6 +538,13 @@ export default function StockDetailScreen() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 90 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#FFD700"
+            />
+          }
         >
           {/* Price Area */}
           <View style={styles.priceArea}>
@@ -551,6 +663,33 @@ export default function StockDetailScreen() {
             loading={predictionsLoading}
             predictions={predictions}
           />
+          {predictionsWarming && !predictions && (
+            <View style={[styles.card, styles.predictNotice]}>
+              <ActivityIndicator color="#FFD700" />
+              <Text style={styles.predictNoticeTitle}>
+                Waking up the prediction model…
+              </Text>
+              <Text style={styles.predictNoticeBody}>
+                The AI service was idle. It takes a few seconds to warm up — retrying automatically.
+              </Text>
+            </View>
+          )}
+          {predictionsError && !predictionsLoading && (
+            <View style={[styles.card, styles.predictNotice]}>
+              <Ionicons name="alert-circle" size={22} color="#EA3943" />
+              <Text style={styles.predictNoticeTitle}>
+                AI predictions unavailable
+              </Text>
+              <Text style={styles.predictNoticeBody}>{predictionsError}</Text>
+              <TouchableOpacity
+                onPress={() => setPredictionsRetry((n) => n + 1)}
+                style={styles.predictRetryBtn}
+              >
+                <Ionicons name="refresh" size={14} color="#0D0D0D" />
+                <Text style={styles.predictRetryTxt}>Try again</Text>
+              </TouchableOpacity>
+            </View>
+          )}
           {predictionArray.length > 0 && (
             <StockAISignal
               predictChange={predictChange}
@@ -558,20 +697,54 @@ export default function StockDetailScreen() {
               horizonDays={predictionArray.length}
             />
           )}
+
+          {/* AI Insights — stock-specific, mirroring the AI Insights page */}
+          {aiInsights ? (
+            <View style={styles.insightsSection}>
+              <StockSmartSummaryCard summary={aiInsights.summary} />
+              <View style={styles.insightsRow}>
+                <MarketSentimentCard sentiment={aiInsights.sentiment} />
+                <StockRiskCard risk={aiInsights.risk} />
+              </View>
+              <AIInsightsFeed feed={aiInsights.feed} />
+            </View>
+          ) : aiInsightsLoading ? (
+            <View style={[styles.card, { alignItems: "center" }]}>
+              <ActivityIndicator color="#FFD700" />
+              <Text style={[styles.label, { marginTop: 10 }]}>
+                Generating AI insights…
+              </Text>
+            </View>
+          ) : null}
+
           {predictionMeta && (
             <View style={styles.card}>
-              <View
+              <TouchableOpacity
+                onPress={() => setHowWePredictOpen((v) => !v)}
+                activeOpacity={0.7}
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  marginBottom: 4,
+                  marginBottom: howWePredictOpen ? 8 : 0,
                 }}
               >
                 <Ionicons name="information-circle" size={16} color="#87CEEB" />
-                <Text style={[styles.cardTitle, { marginLeft: 6, marginBottom: 0 }]}>
+                <Text
+                  style={[
+                    styles.cardTitle,
+                    { marginLeft: 6, marginBottom: 0, flex: 1 },
+                  ]}
+                >
                   How we predict
                 </Text>
-              </View>
+                <Ionicons
+                  name={howWePredictOpen ? "chevron-up" : "chevron-down"}
+                  size={18}
+                  color="#9aa0a6"
+                />
+              </TouchableOpacity>
+              {howWePredictOpen && (
+              <>
               <Text
                 style={{
                   color: "#A7B1BC",
@@ -691,8 +864,8 @@ export default function StockDetailScreen() {
                   </Text>
                 </View>
               )}
-
-              
+              </>
+              )}
             </View>
           )}
           {predictionArray.length > 0 && stock && (
@@ -1059,6 +1232,55 @@ const styles = StyleSheet.create({
   },
   greenText: { color: "#0DBA7D" },
   redText: { color: "#F05555" },
+
+  /** PREDICTION NOTICE / RETRY */
+  predictNotice: {
+    alignItems: "center",
+    gap: 6,
+  },
+  predictNoticeTitle: {
+    color: "#e8eaed",
+    fontSize: 15,
+    fontWeight: "700",
+    marginTop: 6,
+    textAlign: "center",
+  },
+  predictNoticeBody: {
+    color: "#9aa0a6",
+    fontSize: 12,
+    lineHeight: 17,
+    textAlign: "center",
+    marginTop: 2,
+  },
+  predictRetryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 12,
+    backgroundColor: "#FFD700",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+  },
+  predictRetryTxt: {
+    color: "#0D0D0D",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+
+  /** AI INSIGHTS SECTION */
+  insightsSection: {
+    // Cancel container's horizontal padding so the cards align with the
+    // screen edges just like on the AI Insights page.
+    marginHorizontal: -16,
+    marginTop: 4,
+  },
+  insightsRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginHorizontal: 16,
+    marginTop: 16,
+  },
 
   /** ACTION BUTTONS */
   actionRow: {

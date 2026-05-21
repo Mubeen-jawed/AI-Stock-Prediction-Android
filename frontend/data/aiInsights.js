@@ -24,16 +24,6 @@ const stdev = (arr) => {
   return Math.sqrt(mean(arr.map((x) => (x - m) ** 2)));
 };
 
-// Small deterministic hash from a string -> [0,1)
-function seeded(str) {
-  let h = 2166136261;
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return ((h >>> 0) % 1000) / 1000;
-}
-
 const SECTORS = {
   AIRLINK: "Technology", ATRL: "Refinery", CNERGY: "Energy", CPHL: "Pharma",
   DGKC: "Cement", EFERT: "Fertilizer", FCCL: "Cement", FFL: "Fertilizer",
@@ -50,28 +40,6 @@ function intradayStrength(s) {
   const range = (s.high ?? 0) - (s.low ?? 0);
   if (range <= 0) return 0.5;
   return clamp(((s.price ?? s.low) - s.low) / range, 0, 1);
-}
-
-// Build a deterministic mini-trend (sparkline) for a stock from its OHLC.
-// Produces a smooth-ish path open -> ... -> close, biased by momentum.
-function miniTrend(s, points = 14) {
-  const open = Number(s.open) || Number(s.price) || 1;
-  const close = Number(s.price) || open;
-  const high = Number(s.high) || Math.max(open, close);
-  const low = Number(s.low) || Math.min(open, close);
-  const out = [];
-  const base = seeded(s.symbol || "x");
-  for (let i = 0; i < points; i++) {
-    const t = i / (points - 1);
-    // linear open->close with a mid-bow toward high/low and tiny seeded noise
-    const linear = open + (close - open) * t;
-    const bow = Math.sin(t * Math.PI) * (close >= open ? high - close : low - close) * 0.5;
-    const noise = (seeded(`${s.symbol}-${i}`) - 0.5) * (high - low) * 0.12;
-    out.push(linear + bow * (base - 0.3) + noise);
-  }
-  out[0] = open;
-  out[points - 1] = close;
-  return out;
 }
 
 // ---- Smart Summary -------------------------------------------------------
@@ -118,12 +86,6 @@ function buildSummary(portfolio, stocks) {
     100,
   );
 
-  const confidence = clamp(
-    Math.round(60 + winRate * 25 + diversification * 10 + clamp(plPercent, -10, 10)),
-    35,
-    97,
-  );
-
   let verdict = "Needs attention";
   if (health >= 75) verdict = "Good";
   else if (health >= 55) verdict = "Fair";
@@ -133,12 +95,11 @@ function buildSummary(portfolio, stocks) {
   return {
     hasData,
     health,
-    confidence,
     verdict,
     outperformance,
     marketMove,
     plPercent,
-    indexName: "KSE 100 Index",
+    indexName: "KSE-30 average",
   };
 }
 
@@ -149,13 +110,8 @@ function buildTopPicks(stocks, count = 3) {
     .filter((s) => Number.isFinite(s.changePercent))
     .map((s) => {
       const strength = intradayStrength(s);
-      // momentum score: today's move + intraday positioning + small volume tilt
+      // momentum score: today's move + intraday positioning
       const score = s.changePercent * 0.6 + (strength - 0.5) * 8;
-      const upside = clamp(
-        Math.abs(s.changePercent) * 1.6 + strength * 6 + seeded(s.symbol) * 3,
-        1.5,
-        24,
-      );
       return {
         symbol: s.symbol,
         name: s.name,
@@ -163,8 +119,8 @@ function buildTopPicks(stocks, count = 3) {
         sector: sectorOf(s.symbol),
         score,
         bullish: score >= 0,
-        upside: score >= 0 ? upside : -upside,
-        trend: miniTrend(s),
+        changePercent: s.changePercent,
+        price: s.price,
       };
     })
     .sort((a, b) => b.score - a.score);
@@ -215,7 +171,7 @@ function buildSentiment(stocks) {
 
 // ---- Risk Analysis -------------------------------------------------------
 
-function buildRisk(portfolio, stocks, sentiment) {
+function buildRisk(portfolio, stocks) {
   const positions = portfolio.positions || [];
   const bySym = new Map(stocks.map((s) => [s.symbol, s]));
 
@@ -225,39 +181,44 @@ function buildRisk(portfolio, stocks, sentiment) {
   const marketMoves = stocks.map((s) => s.changePercent).filter(Number.isFinite);
 
   const portVol = stdev(heldMoves.length ? heldMoves : marketMoves);
-  const mktVol = stdev(marketMoves) || 1;
 
-  // Volatility band
+  // Volatility band based on today's cross-sectional stdev of holdings (% pts)
   let volatility = "Low";
   if (portVol > 2.2) volatility = "High";
   else if (portVol > 1.1) volatility = "Medium";
 
-  // Beta ~ portfolio vol relative to market vol (clamped to a sane range)
-  const beta = clamp(Number((portVol / mktVol).toFixed(2)), 0.4, 2.2) || 1.0;
-
-  // Drawdown risk from share of losing positions / weakest holding
+  // Share of holdings currently below their average buy price
   const losers = positions.filter((p) => p.currentPrice < p.avgPrice).length;
-  const loserRatio = positions.length ? losers / positions.length : 0;
-  let drawdown = "Low";
-  if (loserRatio > 0.5) drawdown = "High";
-  else if (loserRatio > 0.25) drawdown = "Medium";
+  const losersPct = positions.length
+    ? Math.round((losers / positions.length) * 100)
+    : 0;
 
   let level = "Moderate Risk";
   let levelColor = "#FFD700";
-  const riskPts = (volatility === "High" ? 2 : volatility === "Medium" ? 1 : 0)
-    + (drawdown === "High" ? 2 : drawdown === "Medium" ? 1 : 0)
-    + (beta > 1.3 ? 1 : 0);
-  if (riskPts >= 4) { level = "High Risk"; levelColor = "#EA3943"; }
+  const volPts = volatility === "High" ? 2 : volatility === "Medium" ? 1 : 0;
+  const losersPts = losersPct > 50 ? 2 : losersPct > 25 ? 1 : 0;
+  const riskPts = volPts + losersPts;
+  if (riskPts >= 3) { level = "High Risk"; levelColor = "#EA3943"; }
   else if (riskPts <= 1) { level = "Low Risk"; levelColor = "#16C784"; }
 
   const advice =
-    positions.length < 4
-      ? "Add more holdings to diversify further"
-      : beta > 1.3
-        ? "Trim high-beta names to reduce swings"
-        : "Diversify to reduce risk further";
+    positions.length === 0
+      ? "Add holdings to see risk insights"
+      : positions.length < 4
+        ? "Add more holdings to diversify further"
+        : volatility === "High"
+          ? "Holdings moved widely today — consider trimming the most volatile names"
+          : "Spread across more sectors to reduce concentration";
 
-  return { level, levelColor, volatility, drawdown, beta, advice };
+  return {
+    level,
+    levelColor,
+    volatility,
+    portVolPct: portVol,
+    losersPct,
+    holdings: positions.length,
+    advice,
+  };
 }
 
 // ---- AI Notifications Feed ----------------------------------------------
@@ -281,15 +242,14 @@ function buildFeed(stocks, sentiment, news) {
 
   const feed = [];
 
-  if (top) {
+  if (top && top.changePercent > 0) {
     feed.push({
       id: `mom-${top.symbol}`,
       icon: "trending-up",
       tone: "up",
-      tag: "Momentum",
-      title: `${top.symbol} is showing strong momentum`,
-      body: `Up ${top.changePercent.toFixed(2)}% today on rising volume — flagged by the momentum model.`,
-      time: "2 min ago",
+      tag: "Top Gainer",
+      title: `${top.symbol} leads the KSE-30 today`,
+      body: `Up ${top.changePercent.toFixed(2)}% in today's session.`,
     });
   }
 
@@ -299,8 +259,7 @@ function buildFeed(stocks, sentiment, news) {
     tone: sentiment.score >= 56 ? "up" : sentiment.score < 45 ? "down" : "neutral",
     tag: "Sentiment",
     title: `Market sentiment reads "${sentiment.label}" (${sentiment.score}/100)`,
-    body: sentiment.blurb,
-    time: "15 min ago",
+    body: `${sentiment.advancers} advancers vs ${sentiment.decliners} decliners across the KSE-30.`,
   });
 
   if (bottom && bottom.changePercent < 0) {
@@ -308,14 +267,13 @@ function buildFeed(stocks, sentiment, news) {
       id: `risk-${bottom.symbol}`,
       icon: "alert-circle",
       tone: "down",
-      tag: "Risk",
-      title: `${bottom.symbol} under pressure`,
-      body: `Down ${Math.abs(bottom.changePercent).toFixed(2)}% — watch for further weakness if support breaks.`,
-      time: "38 min ago",
+      tag: "Top Decliner",
+      title: `${bottom.symbol} is today's biggest decliner`,
+      body: `Down ${Math.abs(bottom.changePercent).toFixed(2)}% in today's session.`,
     });
   }
 
-  // News-based analysis
+  // News headlines (no AI claim — we don't actually score them)
   (news || []).slice(0, 3).forEach((n, i) => {
     if (!n?.title) return;
     feed.push({
@@ -324,7 +282,7 @@ function buildFeed(stocks, sentiment, news) {
       tone: "neutral",
       tag: "News Impact",
       title: n.title,
-      body: "AI scanned this headline for potential impact on your watchlist.",
+      body: n.source || "",
       time: relativeTime(n.date),
     });
   });
@@ -358,7 +316,7 @@ export async function loadAIInsights(token) {
     summary,
     topPicks: buildTopPicks(stocks),
     sentiment,
-    risk: buildRisk(portfolio, stocks, sentiment),
+    risk: buildRisk(portfolio, stocks),
     feed: buildFeed(stocks, sentiment, news),
     updatedAt: Date.now(),
   };

@@ -80,12 +80,19 @@ export default function TabsLayout() {
       />
 
       <Tabs.Screen
+        name="screener"
+        options={{
+          title: "Screener",
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="funnel-outline" size={22} color={color} />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
         name="profile"
         options={{
-          title: "Profile",
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="person-outline" size={22} color={color} />
-          ),
+          href: null, // hidden
         }}
       />
 

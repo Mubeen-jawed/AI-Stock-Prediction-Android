@@ -3,10 +3,10 @@ import React from "react";
 import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import Sparkline from "./Sparkline";
 
 function PickRow({ pick, onPress }) {
   const up = pick.bullish;
+  const chg = Number(pick.changePercent) || 0;
   return (
     <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.7}>
       <Image
@@ -20,8 +20,13 @@ function PickRow({ pick, onPress }) {
         <Text style={styles.sector}>{pick.sector}</Text>
       </View>
 
-      <View style={styles.sparkCol}>
-        <Sparkline data={pick.trend} up={up} />
+      <View style={styles.priceCol}>
+        {Number.isFinite(pick.price) ? (
+          <Text style={styles.price}>
+            {pick.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+          </Text>
+        ) : null}
+        <Text style={styles.priceLbl}>PKR</Text>
       </View>
 
       <View style={styles.rightCol}>
@@ -30,11 +35,11 @@ function PickRow({ pick, onPress }) {
             {up ? "Bullish" : "Bearish"}
           </Text>
         </View>
-        <Text style={[styles.upside, { color: up ? "#16C784" : "#EA3943" }]}>
-          {up ? "+" : ""}
-          {pick.upside.toFixed(2)}%
+        <Text style={[styles.upside, { color: chg >= 0 ? "#16C784" : "#EA3943" }]}>
+          {chg >= 0 ? "+" : ""}
+          {chg.toFixed(2)}%
         </Text>
-        <Text style={styles.upsideLbl}>Predicted Upside</Text>
+        <Text style={styles.upsideLbl}>Today</Text>
       </View>
     </TouchableOpacity>
   );
@@ -46,8 +51,8 @@ export default function AITopPicks({ picks = [], updatedLabel }) {
     <View style={styles.card}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>AI Top Picks</Text>
-          <Text style={styles.sub}>Stocks with highest predicted potential</Text>
+          <Text style={styles.title}>Today's Top Movers</Text>
+          <Text style={styles.sub}>Strongest momentum across the KSE-30</Text>
         </View>
         <TouchableOpacity onPress={() => router.push("/stocks")}>
           <Text style={styles.viewAll}>View All</Text>
@@ -69,7 +74,7 @@ export default function AITopPicks({ picks = [], updatedLabel }) {
       <View style={styles.footer}>
         <Ionicons name="information-circle-outline" size={13} color="#9aa0a6" />
         <Text style={styles.footerTxt}>
-          Predictions are based on AI models & market data
+          Ranked by today's intraday move and close-vs-range position
         </Text>
         {updatedLabel ? <Text style={styles.updated}>{updatedLabel}</Text> : null}
       </View>
@@ -107,7 +112,9 @@ const styles = StyleSheet.create({
   idCol: { width: 78 },
   sym: { color: "#e8eaed", fontWeight: "800", fontSize: 14 },
   sector: { color: "#9aa0a6", fontSize: 11, marginTop: 2 },
-  sparkCol: { flex: 1, alignItems: "center" },
+  priceCol: { flex: 1, alignItems: "center" },
+  price: { color: "#e8eaed", fontSize: 14, fontWeight: "700" },
+  priceLbl: { color: "#9aa0a6", fontSize: 10, marginTop: 2 },
   rightCol: { alignItems: "flex-end", width: 92 },
   signal: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 },
   signalTxt: { fontSize: 10, fontWeight: "800" },
