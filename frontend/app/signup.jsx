@@ -11,10 +11,11 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { Ionicons, MaterialIcons, FontAwesome } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { API_URL } from "../config/config";
 import { useAuth } from "../context/AuthContext";
+import { signInWithProvider } from "../utils/oauth";
 
 export default function Signup() {
   const router = useRouter();
@@ -27,6 +28,23 @@ export default function Signup() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [socialLoading, setSocialLoading] = useState(null); // "google" | "discord"
+
+  const handleSocialAuth = async (provider) => {
+    try {
+      setError(null);
+      setSocialLoading(provider);
+      const result = await signInWithProvider(provider);
+      if (result.type !== "success") return; // user cancelled
+      await login(result.user, result.token);
+      router.replace("/home");
+    } catch (err) {
+      setError(err.message || "Signup failed");
+      console.log(`${provider} signup error:`, err);
+    } finally {
+      setSocialLoading(null);
+    }
+  };
 
   // inside your component:
   const handleSignup = async () => {
@@ -148,28 +166,38 @@ export default function Signup() {
           </TouchableOpacity>
 
           {/* Divider */}
-          {/* <View style={styles.dividerRow}>
+          <View style={styles.dividerRow}>
             <View style={styles.divider} />
             <Text style={styles.dividerText}>Or sign up with</Text>
             <View style={styles.divider} />
-          </View> */}
+          </View>
 
           {/* Social Buttons */}
-          {/* <View style={styles.socialRow}>
+          <View style={styles.socialRow}>
             <TouchableOpacity
               style={styles.socialButton}
-              onPress={() => console.log("Google signup")}
+              onPress={() => handleSocialAuth("google")}
+              disabled={socialLoading !== null}
             >
-              <FontAwesome name="google" size={22} color="#FFFFFF" />
+              {socialLoading === "google" ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <FontAwesome5 name="google" size={22} color="#FFFFFF" />
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.socialButton}
-              onPress={() => console.log("Telegram signup")}
+              onPress={() => handleSocialAuth("discord")}
+              disabled={socialLoading !== null}
             >
-              <Ionicons name="paper-plane-outline" size={22} color="#42A5F5" />
+              {socialLoading === "discord" ? (
+                <ActivityIndicator size="small" color="#5865F2" />
+              ) : (
+                <FontAwesome5 name="discord" size={22} color="#5865F2" />
+              )}
             </TouchableOpacity>
-          </View> */}
+          </View>
 
           {/* Already have account */}
           <TouchableOpacity

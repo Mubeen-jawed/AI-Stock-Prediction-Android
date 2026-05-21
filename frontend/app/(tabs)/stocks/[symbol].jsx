@@ -15,6 +15,7 @@ import { API_URL } from "../../../config/config";
 import Loader from "../../../components/Loader";
 import StockCandleChart from "../../../components/StockCandleChart";
 import PredictiveGraph from "../../../components/PredictiveGraph";
+import StockAISignal from "../../../components/ai/StockAISignal";
 
 const TIME_RANGES = ["1M", "6M", "1Y", "ALL"];
 
@@ -550,6 +551,13 @@ export default function StockDetailScreen() {
             loading={predictionsLoading}
             predictions={predictions}
           />
+          {predictionArray.length > 0 && (
+            <StockAISignal
+              predictChange={predictChange}
+              meta={predictionMeta}
+              horizonDays={predictionArray.length}
+            />
+          )}
           {predictionMeta && (
             <View style={styles.card}>
               <View

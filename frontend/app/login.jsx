@@ -12,10 +12,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { StatusBar } from "expo-status-bar";
-import { Ionicons, MaterialIcons, FontAwesome } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useAuth } from "../context/AuthContext";
 import { API_URL } from "../config/config";
+import { signInWithProvider } from "../utils/oauth";
 
 export default function Login() {
   const router = useRouter();
@@ -26,6 +27,23 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState(null); // "google" | "discord"
+
+  const handleSocialAuth = async (provider) => {
+    try {
+      setError(false);
+      setSocialLoading(provider);
+      const result = await signInWithProvider(provider);
+      if (result.type !== "success") return; // user cancelled
+      await login(result.user, result.token);
+      router.replace("/home");
+    } catch (err) {
+      setError(true);
+      console.log(`${provider} login error:`, err);
+    } finally {
+      setSocialLoading(null);
+    }
+  };
 
   const handleLogin = async () => {
     try {
@@ -156,28 +174,38 @@ export default function Login() {
           </TouchableOpacity>
 
           {/* Divider */}
-          {/* <View style={styles.dividerRow}>
+          <View style={styles.dividerRow}>
             <View style={styles.divider} />
             <Text style={styles.dividerText}>Or go with</Text>
             <View style={styles.divider} />
-          </View> */}
+          </View>
 
           {/* Social Buttons */}
-          {/* <View style={styles.socialRow}>
+          <View style={styles.socialRow}>
             <TouchableOpacity
               style={styles.socialButton}
-              onPress={() => console.log("Google login")}
+              onPress={() => handleSocialAuth("google")}
+              disabled={socialLoading !== null}
             >
-              <FontAwesome name="google" size={22} color="#FFFFFF" />
+              {socialLoading === "google" ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <FontAwesome5 name="google" size={22} color="#FFFFFF" />
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.socialButton}
-              onPress={() => console.log("Telegram login")}
+              onPress={() => handleSocialAuth("discord")}
+              disabled={socialLoading !== null}
             >
-              <Ionicons name="paper-plane-outline" size={22} color="#42A5F5" />
+              {socialLoading === "discord" ? (
+                <ActivityIndicator size="small" color="#5865F2" />
+              ) : (
+                <FontAwesome5 name="discord" size={22} color="#5865F2" />
+              )}
             </TouchableOpacity>
-          </View> */}
+          </View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

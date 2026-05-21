@@ -12,11 +12,11 @@ const PYTHON_API_URL = process.env.PYTHON_API_URL || "http://127.0.0.1:8001";
  */
 async function predictPrice(symbol, days = 7, modelType = "lstm") {
   try {
-    const response = await axios.post(`${PYTHON_API_URL}/prediction`, {
-      symbol: symbol,
-      days: days,
-      model_type: modelType,
-    });
+    const response = await axios.post(
+      `${PYTHON_API_URL}/prediction`,
+      { symbol, days, model_type: modelType },
+      { timeout: 90000 }, // 90s — covers Render free-tier cold starts
+    );
 
     return response.data;
   } catch (error) {
