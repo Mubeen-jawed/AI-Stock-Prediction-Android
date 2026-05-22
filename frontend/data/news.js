@@ -46,8 +46,9 @@
 // ];
 import { API_URL } from "../config/config";
 
-export async function fetchNews(token) {
-  const res = await fetch(`${API_URL}/api/news`, {
+export async function fetchNews(token, symbol) {
+  const qs = symbol ? `?symbol=${encodeURIComponent(symbol)}` : "";
+  const res = await fetch(`${API_URL}/api/news${qs}`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },

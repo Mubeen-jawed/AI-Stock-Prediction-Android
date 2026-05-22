@@ -66,8 +66,9 @@ import { stocksData } from "./stocksData.js";
 // mock implementation for now
 let cachedStocks = null;
 
-export async function fetchStocks({ topTab = "Favorites", q = "", token }) {
-  // Load real backend data if not loaded yet
+export async function fetchStocks({ topTab = "Favorites", q = "", token, force = false }) {
+  // Load real backend data if not loaded yet (or if forcing a refresh)
+  if (force) cachedStocks = null;
   if (!cachedStocks) {
     const res = await fetch(`${API_URL}/api/stocks/psx-kse30`, {
       headers: { Authorization: `Bearer ${token}` },

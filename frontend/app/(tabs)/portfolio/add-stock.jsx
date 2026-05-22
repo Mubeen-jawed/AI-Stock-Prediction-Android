@@ -85,7 +85,7 @@ export default function AddStockScreen() {
       if (res?.portfolio) {
         Alert.alert(
           "Added to portfolio",
-          `${payload.quantity} x ${payload.symbol} @ $${payload.buyPrice}`,
+          `${payload.quantity} x ${payload.symbol} @ ${payload.buyPrice}`,
           [{ text: "OK", onPress: () => router.push("/portfolio") }],
         );
       } else {

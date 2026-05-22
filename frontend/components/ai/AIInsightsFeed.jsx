@@ -17,7 +17,7 @@ function FeedItem({ item, last }) {
       <View style={{ flex: 1 }}>
         <View style={styles.topLine}>
           <Text style={[styles.tag, { color: toneColor(item.tone) }]}>{item.tag}</Text>
-          <Text style={styles.time}>{item.time}</Text>
+          {item.time ? <Text style={styles.time}>{item.time}</Text> : null}
         </View>
         <Text style={styles.title} numberOfLines={2}>
           {item.title}

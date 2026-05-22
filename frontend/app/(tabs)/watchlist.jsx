@@ -1,7 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState, useCallback, useEffect } from "react";
 import { useFocusEffect } from "@react-navigation/native";
-import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import StockRow from "../../components/StockRow";
 import { useAuth } from "../../context/AuthContext";
 import SkeletonLoader from "../../components/SkeletonLoader";
@@ -11,47 +18,49 @@ export default function StocksScreen() {
   const [q, setQ] = useState("");
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const { token } = useAuth();
 
-  useEffect(() => {
-    let isMounted = true;
+  const fetchWatchlist = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/api/users/get-watchlist`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
-    const fetchWatchlist = async () => {
-      try {
-        setLoading(true);
-
-        const res = await fetch(`${API_URL}/api/users/get-watchlist`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (!res.ok) {
-          const errorText = await res.text();
-          console.log("Failed to fetch watchlist:", errorText);
-          return;
-        }
-
-        const data = await res.json();
-
-        if (isMounted) {
-          setRows(data.watchlist);
-        }
-      } catch (err) {
-        console.log("Error fetching watchlist:", err);
-      } finally {
-        if (isMounted) setLoading(false);
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.log("Failed to fetch watchlist:", errorText);
+        return;
       }
-    };
 
-    if (token) fetchWatchlist();
+      const data = await res.json();
+      setRows(data.watchlist);
+    } catch (err) {
+      console.log("Error fetching watchlist:", err);
+    }
+  }, [token]);
 
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    fetchWatchlist().finally(() => {
+      if (alive) setLoading(false);
+    });
     return () => {
-      isMounted = false;
+      alive = false;
     };
-  }, [token, API_URL]);
+  }, [fetchWatchlist]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchWatchlist();
+    setTimeout(() => setRefreshing(false), 2000);
+  }, [fetchWatchlist]);
   return (
     <View style={styles.screen}>
       {/* Search bar + icons */}
@@ -79,6 +88,13 @@ export default function StocksScreen() {
       <ScrollView
         style={styles.listCard}
         contentContainerStyle={{ paddingVertical: 4 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#FFD700"
+          />
+        }
       >
         {loading ? (
           <SkeletonLoader />
