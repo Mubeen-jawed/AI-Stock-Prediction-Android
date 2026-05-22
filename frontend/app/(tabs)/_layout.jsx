@@ -53,8 +53,9 @@ export default function TabsLayout() {
         name="portfolio"
         options={{
           title: "Portfolio",
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="wallet-outline" size={22} color={color} />
+          tabBarLabelStyle: { color: "#FFD700", fontWeight: "700" },
+          tabBarIcon: () => (
+            <Ionicons name="wallet-outline" size={22} color="#FFD700" />
           ),
         }}
       />
@@ -72,10 +73,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="news"
         options={{
-          title: "News",
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="newspaper-outline" size={22} color={color} />
-          ),
+          href: null, // hidden
         }}
       />
 
