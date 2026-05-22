@@ -662,6 +662,8 @@ export default function StockDetailScreen() {
           <PredictiveGraph
             loading={predictionsLoading}
             predictions={predictions}
+            symbol={stock?.symbol || symbol}
+            currentPrice={stock?.price ?? stock?.open ?? stock?.close}
           />
           {predictionsWarming && !predictions && (
             <View style={[styles.card, styles.predictNotice]}>
