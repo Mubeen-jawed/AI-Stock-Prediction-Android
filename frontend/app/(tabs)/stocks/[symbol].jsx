@@ -16,6 +16,7 @@ import { API_URL } from "../../../config/config";
 import Loader from "../../../components/Loader";
 import StockCandleChart from "../../../components/StockCandleChart";
 import PredictiveGraph from "../../../components/PredictiveGraph";
+import TechnicalIndicators from "../../../components/TechnicalIndicators";
 import StockAISignal from "../../../components/ai/StockAISignal";
 import StockSmartSummaryCard from "../../../components/ai/StockSmartSummaryCard";
 import StockRiskCard from "../../../components/ai/StockRiskCard";
@@ -659,6 +660,7 @@ export default function StockDetailScreen() {
               </View>
             </View>
           </View>
+          <TechnicalIndicators chart={chart} />
           <PredictiveGraph
             loading={predictionsLoading}
             predictions={predictions}
@@ -672,7 +674,7 @@ export default function StockDetailScreen() {
                 Waking up the prediction model…
               </Text>
               <Text style={styles.predictNoticeBody}>
-                The AI service was idle. It takes a few seconds to warm up — retrying automatically.
+                The AI service was idle. It takes a few seconds to warm up, retrying automatically.
               </Text>
             </View>
           )}
@@ -843,7 +845,7 @@ export default function StockDetailScreen() {
               <View style={styles.metaRow}>
                 <Text style={styles.metaLabel}>60d range</Text>
                 <Text style={styles.metaValue}>
-                  {predictionMeta.input_stats.min_60d.toFixed(2)} –{" "}
+                  {predictionMeta.input_stats.min_60d.toFixed(2)},{" "}
                   {predictionMeta.input_stats.max_60d.toFixed(2)}
                 </Text>
               </View>
@@ -872,79 +874,6 @@ export default function StockDetailScreen() {
           )}
           {predictionArray.length > 0 && stock && (
             <>
-              {/* AI Overview Card */}
-              <View style={styles.card}>
-                <Text style={styles.cardTitle}>
-                  Expected {predictionArray.length} Days {symbol} Statistics
-                </Text>
-
-                <View style={styles.grid}>
-                  <View style={styles.gridItem}>
-                    <Text style={styles.label}>Current Price</Text>
-                    <Text style={styles.value}>
-                      {(stock?.price || stock?.open || stock?.close)?.toFixed(
-                        2,
-                      ) || "N/A"}
-                    </Text>
-                  </View>
-
-                  <View style={styles.gridItem}>
-                    <Text style={styles.label}>
-                      After {predictionArray.length} days (Expected)
-                    </Text>
-                    <Text style={styles.value}>
-                      {lastPrediction
-                        ? Number(lastPrediction.price).toFixed(2)
-                        : "N/A"}
-                    </Text>
-                  </View>
-
-                  <View style={styles.gridItem}>
-                    <Text style={styles.label}>Change (%)</Text>
-                    <Text
-                      style={[
-                        styles.value,
-                        {
-                          color:
-                            predictChange == null
-                              ? "#8B96A5"
-                              : predictChange >= 0
-                                ? "#22c55e"
-                                : "#ef4444",
-                        },
-                      ]}
-                    >
-                      {predictChange != null
-                        ? `${predictChange >= 0 ? "+" : ""}${predictChange.toFixed(2)}%`
-                        : "Calculating..."}
-                    </Text>
-                  </View>
-
-                  <View style={{ width: "100%", marginBottom: 14 }}>
-                    <View
-                      style={{
-                        display: "flex",
-                        justifyContent: "left",
-                        flexDirection: "row",
-                        alignItems: "center",
-                        marginBottom: 6,
-                      }}
-                    >
-                      <Ionicons name="sparkles" size={15} color="#87CEEB" />
-                      <Text style={styles.AIValue}> AI Analysis</Text>
-                    </View>
-                    <Text
-                      style={[
-                        styles.AIText,
-                        { fontSize: 13, lineHeight: 18, width: "100%" },
-                      ]}
-                    >
-                      {getPredictionText(predictChange)}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
               {/* Day Breakdown Card */}
               <View style={styles.card}>
                 <Text style={styles.cardTitle}>Daily Breakdown</Text>

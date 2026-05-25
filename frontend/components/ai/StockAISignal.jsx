@@ -96,7 +96,7 @@ export default function StockAISignal({ predictChange, meta, horizonDays }) {
 
           <Text style={styles.upsideLabel}>
             Predicted {up ? "Upside" : "Downside"}
-            {horizonDays ? ` · ${horizonDays}d` : ""}
+            {horizonDays ? `, ${horizonDays}d` : ""}
           </Text>
           <Text style={[styles.upside, { color: signal.color }]}>
             {predictChange != null && Number.isFinite(predictChange)
@@ -154,7 +154,7 @@ export default function StockAISignal({ predictChange, meta, horizonDays }) {
       {stats && (
         <Metric
           label="60d Range"
-          value={`${stats.min_60d.toFixed(2)} – ${stats.max_60d.toFixed(2)}`}
+          value={`${stats.min_60d.toFixed(2)}, ${stats.max_60d.toFixed(2)}`}
         />
       )}
     </View>

@@ -77,7 +77,7 @@ function plainSummary({ symbol, days, current, end, high, low, changePct }) {
         : "stay roughly flat";
   const magnitude = Math.abs(changePct).toFixed(2);
   const sym = symbol || "the stock";
-  return `Based on recent price patterns, the model expects ${sym} to ${dir} by about ${magnitude}% over the next ${days} trading days — closing near Rs ${formatPrice(end)} (today: Rs ${formatPrice(current)}). The forecast ranges between Rs ${formatPrice(low)} (low) and Rs ${formatPrice(high)} (high).`;
+  return `Based on recent price patterns, the model expects ${sym} to ${dir} by about ${magnitude}% over the next ${days} trading days, closing near Rs ${formatPrice(end)} (today: Rs ${formatPrice(current)}). The forecast ranges between Rs ${formatPrice(low)} (low) and Rs ${formatPrice(high)} (high).`;
 }
 
 export default function PredictiveGraph({
@@ -620,7 +620,7 @@ export default function PredictiveGraph({
         </Text>
         <Text style={styles.explainerCaveat}>
           Not financial advice. Forecasts are based on past prices and can be
-          wrong — news, earnings, and market shocks aren&apos;t included.
+          wrong, news, earnings, and market shocks aren&apos;t included.
         </Text>
       </View>
     </View>
