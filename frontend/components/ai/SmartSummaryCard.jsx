@@ -47,8 +47,8 @@ export default function SmartSummaryCard({ summary }) {
             </Text>
           ) : (
             <Text style={styles.analysis}>
-              Add holdings to your portfolio to unlock a personalized AI health
-              analysis and benchmark comparison.
+              Add holdings to your portfolio to see an AI health analysis and
+              benchmark comparison.
             </Text>
           )}
         </View>

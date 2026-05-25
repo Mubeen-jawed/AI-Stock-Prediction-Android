@@ -10,8 +10,17 @@ const bandColor = (band) =>
 function Metric({ label, value, color }) {
   return (
     <View style={styles.metric}>
-      <Text style={styles.metricLabel}>{label}</Text>
-      <Text style={[styles.metricValue, color && { color }]}>{value}</Text>
+      <Text style={styles.metricLabel} numberOfLines={1}>
+        {label}
+      </Text>
+      <Text
+        style={[styles.metricValue, color && { color }]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.8}
+      >
+        {value}
+      </Text>
     </View>
   );
 }
@@ -31,10 +40,10 @@ export default function StockRiskCard({ risk }) {
 
       <Metric label="Volatility" value={volatility} color={bandColor(volatility)} />
       <Metric
-        label="Drawdown Risk"
+        label="Risk"
         value={
           drawdownPct != null
-            ? `${drawdown} · -${drawdownPct.toFixed(1)}%`
+            ? `${drawdown}, -${drawdownPct.toFixed(1)}%`
             : drawdown
         }
         color={bandColor(drawdown)}
@@ -69,8 +78,15 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderTopWidth: 1,
     borderTopColor: "#1F1F1F",
+    gap: 8,
   },
-  metricLabel: { color: "#9aa0a6", fontSize: 13 },
-  metricValue: { color: "#e8eaed", fontSize: 13, fontWeight: "700" },
+  metricLabel: { color: "#9aa0a6", fontSize: 13, flexShrink: 1 },
+  metricValue: {
+    color: "#e8eaed",
+    fontSize: 13,
+    fontWeight: "700",
+    flexShrink: 0,
+    textAlign: "right",
+  },
   advice: { color: "#FFD700", fontSize: 12, fontWeight: "600", marginTop: 10 },
 });
