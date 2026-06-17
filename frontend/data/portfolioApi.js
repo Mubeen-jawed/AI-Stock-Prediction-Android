@@ -1,4 +1,4 @@
-import { API_URL } from "../app/config/config";
+import { API_URL } from "../config/config";
 // however you store token – context / AsyncStorage etc.
 
 export async function createPosition(payload, token) {

@@ -7,10 +7,10 @@ const {
 
 const router = express.Router();
 
-// GET /api/stocks/news?symbol=PPL
+// GET /api/stocks/news?symbol=AAPL
 router.get("/", getStockNewsList);
 
-// GET /api/stocks/news/:id?symbol=PPL
+// GET /api/stocks/news/:id?symbol=AAPL
 router.get("/:id", getStockNewsDetail);
 
 module.exports = router;

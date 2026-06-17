@@ -1,21 +1,21 @@
 import { Image, TouchableOpacity, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
-export default function StockRow({ logo, name, price, changePercent, ticker }) {
+export default function StockRow({
+  logo,
+  name,
+  price,
+  changePercent,
+  ticker,
+  open,
+  high,
+  low,
+  volume,
+}) {
   const up = changePercent >= 0;
   const router = useRouter();
 
-  // console.log(logo);
-
-  const getImageSource = (logo) => {
-    // Remote image (API URL)
-    if (typeof logo === "string") {
-      return { uri: logo.trim() };
-    }
-
-    // Local image (import / require)
-    return logo;
-  };
+  console.log(`https://img.logo.dev/${logo}`, "logo uri");
 
   return (
     <TouchableOpacity
@@ -26,29 +26,41 @@ export default function StockRow({ logo, name, price, changePercent, ticker }) {
       key={name}
       style={styles.row}
     >
-      <Image source={getImageSource(logo)} style={styles.logo} />
+      <Image
+        source={{
+          uri: `https://img.logo.dev/${logo}?token=pk_P253PcFaTZepqM7o3SqeWw`,
+        }}
+        style={styles.logo}
+      />
       <View style={{ flex: 1 }}>
         <Text style={styles.name}>
-          {ticker} <Text style={styles.ticker}>/ USD</Text>
+          {ticker} <Text style={styles.ticker}></Text>
         </Text>
         <Text style={styles.vol}>{name}</Text>
       </View>
       <View style={{ alignItems: "flex-end" }}>
         <Text style={styles.price}>${price}</Text>
-        <View
-          style={[styles.pill, { backgroundColor: up ? "#163D2B" : "#3D1B1B" }]}
-        >
-          <Text
-            style={{
-              color: changePercent >= 0 ? "#16C784" : "#EA3943",
-              fontWeight: "700",
-              fontSize: 10,
-            }}
+        {changePercent === null ||
+        changePercent === undefined ||
+        changePercent == 0 ? null : (
+          <View
+            style={[
+              styles.pill,
+              { backgroundColor: up ? "#163D2B" : "#3D1B1B" },
+            ]}
           >
-            {changePercent >= 0 ? "+" : ""}
-            {changePercent?.toFixed(2)}%
-          </Text>
-        </View>
+            <Text
+              style={{
+                color: changePercent >= 0 ? "#16C784" : "#EA3943",
+                fontWeight: "700",
+                fontSize: 10,
+              }}
+            >
+              {changePercent >= 0 ? "+" : ""}
+              {changePercent?.toFixed(2)}%
+            </Text>
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );

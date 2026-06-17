@@ -1,5 +1,5 @@
 // data/profile.js
-import { API_URL } from "../app/config/config";
+import { API_URL } from "../config/config";
 
 // const SAMPLE_PROFILE = {
 //   emailMasked: "user***@****",

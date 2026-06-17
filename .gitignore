@@ -4,4 +4,3 @@ backend/.env
 backend/ai-models/price-prediction/venv
 frontend/node_modules
 frontend/.env
-frontend/config/config.js

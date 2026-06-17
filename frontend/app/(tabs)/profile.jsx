@@ -9,7 +9,7 @@ import {
   View,
   TouchableOpacity,
 } from "react-native";
-import { API_URL } from "../config/config";
+import { API_URL } from "../../config/config";
 import { useAuth } from "../../context/AuthContext";
 import { router } from "expo-router";
 import ConfirmModal from "../../components/ConfirmModal";

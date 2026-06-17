@@ -13,7 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useData } from "../../../context/DataContext";
 import { useAuth } from "../../../context/AuthContext";
-import { API_URL } from "../../config/config";
+import { API_URL } from "../../../config/config";
 import ConfirmModal from "../../../components/ConfirmModal";
 
 // Bybit-ish theme
@@ -28,7 +28,7 @@ const YELLOW = "#FFD700";
 const formatMoney = (n) => {
   const num = Number(n);
   if (!Number.isFinite(num)) return "—";
-  return `$${num.toFixed(2)}`;
+  return num.toFixed(2);
 };
 
 const formatPct = (n) => {
@@ -39,7 +39,7 @@ const formatPct = (n) => {
 
 export default function EditPortfolioScreen() {
   // Replace this with your fetched portfolio rows
-  const { apiData } = useData();
+  const { apiData, setApiData } = useData();
   const { token } = useAuth();
 
   const router = useRouter();
@@ -55,7 +55,6 @@ export default function EditPortfolioScreen() {
 
     setRows(
       apiData.map((r) => ({
-        logo: r.logo,
         symbol: r.symbol,
         name: r.name ?? "",
         quantity: String(r.quantity ?? ""),
@@ -64,8 +63,6 @@ export default function EditPortfolioScreen() {
       }))
     );
   }, [apiData]);
-
-  // console.log(apiData);
 
   const handleSave = async () => {
     try {
@@ -113,19 +110,32 @@ export default function EditPortfolioScreen() {
   };
 
   const deleteRow = async (symbol) => {
+    const prevRows = rows;
+    const prevApiData = apiData;
+
+    // Optimistic UI: remove from both local rows and shared context
     setRows((p) => p.filter((r) => r.symbol !== symbol));
+    if (Array.isArray(apiData)) {
+      setApiData(apiData.filter((r) => r.symbol !== symbol));
+    }
 
     try {
-      await fetch(`${API_URL}/api/portfolio/${symbol}`, {
+      const res = await fetch(`${API_URL}/api/portfolio/${symbol}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.message || `Delete failed (${res.status})`);
+      }
     } catch (e) {
-      // rollback UI if failed
+      // Roll back both UI and context on failure
       setRows(prevRows);
-      Alert.alert("Error", e?.response?.data?.message || "Delete failed");
+      setApiData(prevApiData);
+      Alert.alert("Error", e?.message || "Delete failed");
     }
   };
 
@@ -142,8 +152,6 @@ export default function EditPortfolioScreen() {
       <View key={r.symbol} style={styles.rowCard}>
         <View style={styles.rowTop}>
           <View style={styles.stockCol}>
-            {/* <Image source={getImageSource(logo)} style={styles.logo} /> */}
-
             <Text style={styles.symbol}>{r.symbol}</Text>
             <Text style={styles.name} numberOfLines={1}>
               {r.name}
@@ -201,7 +209,7 @@ export default function EditPortfolioScreen() {
                 updateRow(r.symbol, { avgPrice: t.replace(/[^0-9.]/g, "") })
               }
               keyboardType="decimal-pad"
-              placeholder="$0.00"
+              placeholder="0.00"
               placeholderTextColor="#666"
               style={styles.input}
             />

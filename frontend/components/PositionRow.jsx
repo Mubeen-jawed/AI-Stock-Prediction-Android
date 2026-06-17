@@ -26,15 +26,15 @@ export default function PositionRow({ pos }) {
 
       <View style={{ flex: 1 }}>
         <Text style={styles.label}>Buying</Text>
-        <Text style={styles.value}>${pos.avgPrice.toFixed(2)}</Text>
+        <Text style={styles.value}>Rs.{pos.avgPrice.toFixed(2)}</Text>
         <Text style={styles.label}>Current</Text>
-        <Text style={styles.value}>${pos.currentPrice.toFixed(2)}</Text>
+        <Text style={styles.value}>Rs.{pos.currentPrice.toFixed(2)}</Text>
       </View>
 
       <View style={{ width: 90, alignItems: "flex-end" }}>
         <Text style={styles.label}>P / L</Text>
         <Text style={[styles.pl, { color: up ? "#16C784" : "#EA3943" }]}>
-          {up ? "+" : "-"}${Math.abs(pl).toFixed(2)}
+          {up ? "+" : "-"}Rs.{Math.abs(pl).toFixed(2)}
         </Text>
         <View
           style={[styles.pill, { backgroundColor: up ? "#163D2B" : "#3D1B1B" }]}

@@ -2,9 +2,8 @@ def predict_multi(symbol, days=7):
     import numpy as np
     import pandas as pd
     import os, joblib
-    import ta
+    from datetime import datetime
     from tensorflow.keras.models import load_model
-    from datetime import timedelta
 
     BASE_PATH = os.path.dirname(os.path.abspath(__file__))
     DATA_PATH = os.path.join(BASE_PATH, "data")
@@ -15,98 +14,86 @@ def predict_multi(symbol, days=7):
     data_file = os.path.join(DATA_PATH, f"{symbol}.csv")
 
     if not all(map(os.path.exists, [model_file, scaler_file, data_file])):
-        raise FileNotFoundError(f"Model, scaler, or data file missing for {symbol}")
+        raise FileNotFoundError("Model, scaler, or data file missing")
 
-    # Load
     model = load_model(model_file)
     scaler = joblib.load(scaler_file)
 
-    # Detect model feature count
-    num_features = model.input_shape[-1]
+    df = pd.read_csv(data_file, index_col=0)
+    df["Close"] = pd.to_numeric(df["Close"], errors="coerce")
+    df.dropna(inplace=True)
 
-    # Load latest data
-    df = pd.read_csv(data_file, parse_dates=['Date'])
-    if "Volume" not in df.columns:
-        df["Volume"] = 0
-
-    def calculate_indicators(input_df, feature_count):
-        temp_df = input_df.copy()
-        temp_df['Close'] = pd.to_numeric(temp_df['Close'], errors='coerce')
-        
-        # Basic 3 features
-        temp_df['RSI'] = ta.momentum.rsi(temp_df['Close'], window=14)
-        temp_df['SMA'] = ta.trend.sma_indicator(temp_df['Close'], window=20)
-        
-        if feature_count == 8:
-            temp_df['Volume'] = pd.to_numeric(temp_df['Volume'], errors='coerce')
-            macd = ta.trend.MACD(temp_df['Close'])
-            temp_df['MACD'] = macd.macd()
-            temp_df['MACD_SIGNAL'] = macd.macd_signal()
-            bollinger = ta.volatility.BollingerBands(temp_df['Close'], window=20, window_dev=2)
-            temp_df['BB_HIGH'] = bollinger.bollinger_hband()
-            temp_df['BB_LOW'] = bollinger.bollinger_lband()
-            flist = ['Close', 'Volume', 'RSI', 'SMA', 'MACD', 'MACD_SIGNAL', 'BB_HIGH', 'BB_LOW']
-        else:
-            flist = ['Close', 'RSI', 'SMA']
-        
-        temp_df.dropna(inplace=True)
-        return temp_df, flist
+    prices = df["Close"].values.reshape(-1, 1)
+    scaled_prices = scaler.transform(prices)
 
     lookback = 60
+    input_seq = scaled_prices[-lookback:].reshape(1, lookback, 1)
+
+    last_date = pd.to_datetime(df.index[-1])
+    future_dates = pd.date_range(
+        start=last_date + pd.Timedelta(days=1),
+        periods=days,
+        freq="D"
+    )
+
     predictions = []
-    working_df = df.copy() 
-    last_date = df['Date'].iloc[-1]
-    last_date = pd.to_datetime(last_date)
-
     for i in range(days):
-        try:
-            current_features_df, feature_list = calculate_indicators(working_df, num_features)
-        except Exception:
-            break 
-        
-        data_values = current_features_df[feature_list].values
-        if len(data_values) < lookback:
-            break
-
-        scaled_data = scaler.transform(data_values)
-        X_input = scaled_data[-lookback:].reshape(1, lookback, num_features)
-        
-        pred_scaled_close = model.predict(X_input, verbose=0)[0][0]
-        
-        placeholder = np.zeros((1, num_features))
-        placeholder[0, 0] = pred_scaled_close
-        pred_price = scaler.inverse_transform(placeholder)[0][0]
-        
-        last_date += timedelta(days=1)
-        while last_date.weekday() >= 5:
-             last_date += timedelta(days=1)
+        pred_scaled = model.predict(input_seq, verbose=0)
+        pred_price = scaler.inverse_transform(pred_scaled)[0][0]
 
         predictions.append({
-            "date": last_date.strftime("%Y-%m-%d"),
+            "date": future_dates[i].strftime("%Y-%m-%d"),
             "price": float(pred_price)
         })
 
-        last_row = working_df.iloc[-1]
-        new_row = {
-            "Date": last_date,
-            "Close": pred_price,
-            "Volume": last_row["Volume"], 
-            "Open": pred_price, "High": pred_price, "Low": pred_price, "Symbol": last_row.get("Symbol", symbol)
-        }
-        working_df = pd.concat([working_df, pd.DataFrame([new_row])], ignore_index=True)
+        input_seq = np.concatenate(
+            (input_seq[:, 1:, :], pred_scaled.reshape(1, 1, 1)),
+            axis=1
+        )
 
-    return predictions
+    recent_window = df.tail(lookback).copy()
+    recent_closes = [
+        {"date": pd.to_datetime(idx).strftime("%Y-%m-%d"), "close": float(v)}
+        for idx, v in recent_window["Close"].items()
+    ]
 
-if __name__ == "__main__":
-    import sys, json
-    if len(sys.argv) < 2:
-        print(json.dumps({"error": "No symbol provided"}))
-        sys.exit(1)
-    
-    symbol = sys.argv[1]
-    days = int(sys.argv[2]) if len(sys.argv) > 2 else 7
+    closes = df["Close"].values
+    last_close = float(closes[-1])
+    mean_close = float(np.mean(closes[-lookback:]))
+    std_close = float(np.std(closes[-lookback:]))
+    pct_30d = float((closes[-1] - closes[-30]) / closes[-30] * 100) if len(closes) >= 30 else None
+    min_60d = float(np.min(closes[-lookback:]))
+    max_60d = float(np.max(closes[-lookback:]))
+
     try:
-        preds = predict_multi(symbol, days)
-        print(json.dumps(preds))
-    except Exception as e:
-        print(json.dumps({"error": str(e)}))
+        model_mtime = os.path.getmtime(model_file)
+        last_trained = datetime.fromtimestamp(model_mtime).strftime("%Y-%m-%d")
+    except Exception:
+        last_trained = None
+
+    meta = {
+        "model": {
+            "type": "LSTM",
+            "architecture": "2x LSTM(50) + Dropout(0.2) + Dense(25) + Dense(1)",
+            "framework": "TensorFlow / Keras",
+            "lookback_days": lookback,
+            "trained_on": "Historical daily Close prices",
+            "last_trained": last_trained,
+        },
+        "training_data": {
+            "rows": int(len(df)),
+            "from": pd.to_datetime(df.index[0]).strftime("%Y-%m-%d"),
+            "to": pd.to_datetime(df.index[-1]).strftime("%Y-%m-%d"),
+        },
+        "input_stats": {
+            "last_close": last_close,
+            "mean_60d": mean_close,
+            "stddev_60d": std_close,
+            "min_60d": min_60d,
+            "max_60d": max_60d,
+            "pct_change_30d": pct_30d,
+        },
+        "recent_closes": recent_closes,
+    }
+
+    return {"predictions": predictions, "meta": meta}

@@ -1,10 +1,8 @@
-import { Tabs } from "expo-router";
+import { Tabs, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { View } from "react-native";
-import { useRouter } from "expo-router";
 
 export default function TabsLayout() {
-  const router = useRouter();
   return (
     <Tabs
       sceneContainerStyle={{ backgroundColor: "#05060A" }}
@@ -27,9 +25,6 @@ export default function TabsLayout() {
     >
       <Tabs.Screen
         name="home"
-        onPress={() => {
-          router.push("/home");
-        }}
         options={{
           title: "Home",
           tabBarIcon: ({ color }) => (
@@ -39,9 +34,6 @@ export default function TabsLayout() {
       />
 
       <Tabs.Screen
-        onPress={() => {
-          router.push("/stocks");
-        }}
         name="stocks"
         options={{
           title: "Stocks",
@@ -49,44 +41,56 @@ export default function TabsLayout() {
             <Ionicons name="stats-chart-outline" size={22} color={color} />
           ),
         }}
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            router.replace("/(tabs)/stocks");
+          },
+        }}
       />
 
       <Tabs.Screen
-        onPress={() => {
-          router.push("/portfolio");
-        }}
         name="portfolio"
         options={{
           title: "Portfolio",
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="wallet-outline" size={22} color={color} />
+          tabBarLabelStyle: { color: "#FFD700", fontWeight: "700" },
+          tabBarIcon: () => (
+            <Ionicons name="wallet-outline" size={22} color="#FFD700" />
           ),
         }}
       />
 
       <Tabs.Screen
-        onPress={() => {
-          router.push("/news");
+        name="ai-insights"
+        options={{
+          title: "AI Insights",
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="sparkles-outline" size={22} color={color} />
+          ),
         }}
+      />
+
+      <Tabs.Screen
         name="news"
         options={{
-          title: "News",
+          href: null, // hidden
+        }}
+      />
+
+      <Tabs.Screen
+        name="screener"
+        options={{
+          title: "Screener",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="newspaper-outline" size={22} color={color} />
+            <Ionicons name="funnel-outline" size={22} color={color} />
           ),
         }}
       />
 
       <Tabs.Screen
-        onPress={() => {
-          router.push("/profile");
-        }}
         name="profile"
         options={{
-          title: "Profile",
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="person-outline" size={22} color={color} />
-          ),
+          href: null, // hidden
         }}
       />
 

@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const userRoutes = require("./routes/userRoutes.js");
+const authRoutes = require("./routes/authRoutes.js");
 const portfolioRoutes = require("./routes/portfolioRoutes.js");
 const stockRoutes = require("./routes/stockRoutes.js");
 const predictRoutes = require("./routes/predictRoutes.js");
@@ -16,6 +17,7 @@ app.use(express.json());
 
 // Routes
 app.use("/api/users", userRoutes);
+app.use("/api/auth", authRoutes);
 app.use("/api/portfolio", portfolioRoutes);
 app.use("/api/stocks", stockRoutes);
 app.use("/api/news", newsRoutes);

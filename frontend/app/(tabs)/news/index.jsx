@@ -1,6 +1,7 @@
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -19,6 +20,7 @@ export default function NewsScreen() {
   const [activeTab, setActiveTab] = useState("Latest Activities");
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const { token } = useAuth();
 
@@ -32,6 +34,14 @@ export default function NewsScreen() {
   useEffect(() => {
     load();
   }, [activeTab]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchNews(token)
+      .then((data) => setItems(data))
+      .catch(() => {});
+    setTimeout(() => setRefreshing(false), 2000);
+  }, [token]);
 
   return (
     <View style={styles.screen}>
@@ -65,6 +75,13 @@ export default function NewsScreen() {
       <ScrollView
         style={styles.list}
         contentContainerStyle={{ paddingBottom: 80 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#FFD700"
+          />
+        }
       >
         {loading ? (
           <SkeletonLoader />

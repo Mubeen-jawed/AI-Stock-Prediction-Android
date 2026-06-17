@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useState, useEffect } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useState, useEffect, useCallback } from "react";
+import { ScrollView, StyleSheet, Text, View, RefreshControl } from "react-native";
 import ActionRow from "../../components/ActionRow";
 import EventsList from "../../components/EventsList";
 import HomeHeader from "../../components/HomeHeader";
@@ -10,48 +10,46 @@ import PromoCard from "../../components/PromoCard";
 import SegmentTabs from "../../components/SegmentTabs";
 import StockRow from "../../components/StockRow";
 import Loader from "../../components/Loader";
+import SkeletonLoader from "../../components/SkeletonLoader";
 import { fetchProfile } from "../../data/profile";
 import { fetchNews } from "../../data/news";
+import { fetchAllStocks } from "../../data/stocks";
 
-import apple from "../../assets/images/stock-logos/apple.png";
-import microsoft from "../../assets/images/stock-logos/microsoft.png";
-import nvidia from "../../assets/images/stock-logos/nvidia.png";
-import tesla from "../../assets/images/stock-logos/tesla.png";
+import engro from "../../assets/images/stock-logos/engro.png";
+import lucky from "../../assets/images/stock-logos/lucky.png";
+import ogdc from "../../assets/images/stock-logos/odgc.png";
+import meezan from "../../assets/images/stock-logos/meezan.png";
 
 import { useAuth } from "../../context/AuthContext";
 
 const GAINERS = [
   {
-    logo: apple,
-    name: "Apple",
-    ticker: "AAPL",
-    price: "228.54",
-    changePercent: 2.31,
-    vol: "24.8B",
+    logo: "engrofertilizers.com",
+    name: "Engro Fertilizers",
+    ticker: "EFERT",
+    price: "295.40",
+    vol: "6.2M",
   },
   {
-    logo: nvidia,
-    name: "NVIDIA",
-    ticker: "NVDA",
-    price: "123.91",
-    changePercent: 1.12,
-    vol: "18.3B",
+    logo: "lucky-cement.com",
+    name: "Lucky Cement",
+    ticker: "LUCK",
+    price: "720.10",
+    vol: "1.8M",
   },
   {
-    logo: tesla,
-    name: "Tesla",
-    ticker: "TSLA",
-    price: "254.02",
-    changePercent: 3.1,
-    vol: "12.4B",
+    logo: "ogdcl.com",
+    name: "Oil & Gas Development Company",
+    ticker: "OGDC",
+    price: "142.75",
+    vol: "12.4M",
   },
   {
-    logo: microsoft,
-    name: "Microsoft",
-    ticker: "MSFT",
-    price: "425.77",
-    changePercent: 0.48,
-    vol: "9.7B",
+    logo: "meezanbank.com",
+    name: "Meezan Bank",
+    ticker: "MEBL",
+    price: "215.60",
+    vol: "3.1M",
   },
 ];
 
@@ -62,6 +60,8 @@ export default function Home() {
   const [authenticated, setAuthenticated] = useState(false);
   const [newsLoading, setNewsLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(true);
+  const [allStocks, setAllStocks] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
 
   const router = useRouter();
   const { user, token } = useAuth();
@@ -81,9 +81,29 @@ export default function Home() {
     setNewsLoading(false);
   }
 
+  const loadStocks = useCallback(async () => {
+    if (!token) return;
+    try {
+      const data = await fetchAllStocks(token);
+      if (Array.isArray(data)) setAllStocks(data);
+    } catch (err) {
+      console.error("Stock list fetch failed:", err);
+    }
+  }, [token]);
+
   useEffect(() => {
     load();
   }, [token]);
+
+  useEffect(() => {
+    loadStocks();
+  }, [loadStocks]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    Promise.allSettled([load(), loadStocks()]);
+    setTimeout(() => setRefreshing(false), 2000);
+  }, [loadStocks]);
 
   // console.log(newsItems);
 
@@ -92,8 +112,17 @@ export default function Home() {
       {authenticated && !newsLoading && !profileLoading ? (
         <View style={styles.screen}>
           <StatusBar style="light" />
-          <ScrollView contentContainerStyle={{ paddingBottom: 28 }}>
-            <HomeHeader user={user} />
+          <ScrollView
+            contentContainerStyle={{ paddingBottom: 28 }}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor="#FFD700"
+              />
+            }
+          >
+            <HomeHeader user={user} stocks={allStocks} />
 
             {/* Onboarding banner (Bybit "Verify Now" → Stock KYC) */}
             {/* <View style={styles.banner}>
@@ -116,7 +145,7 @@ export default function Home() {
             {/* <View style={styles.cardRow}>
           <View style={styles.smallCard}>
             <Text style={styles.smallTitle}>Referral Bonus</Text>
-            <Text style={styles.smallSub}>Earn $50 per friend</Text>
+            <Text style={styles.smallSub}>Earn 50 per friend</Text>
           </View>
           <View style={styles.smallCard}>
             <Text style={styles.smallTitle}>IPO Watch</Text>
@@ -125,13 +154,18 @@ export default function Home() {
         </View> */}
 
             {/* Tabs like Bybit (top + sub) */}
-            {/* <SegmentTabs tabs={["Top"]} active={topTab} onChange={setTopTab} /> */}
 
             {/* Stock list (gainers sample) */}
             <View style={styles.listCard}>
-              <View style={{ flexDirection: "row", padding: 16 }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                }}
+              >
                 <Text style={{ color: "#e8eaed", fontWeight: "800" }}>
-                  Top Performers
+                  KMI 30
                 </Text>
                 <Text style={{ color: "#9aa0a6", fontWeight: "700" }}>
                   {" "}
@@ -155,8 +189,9 @@ export default function Home() {
           </ScrollView>
         </View>
       ) : (
-        <View style={styles.safe}>
-          <Loader />
+        <View style={styles.screen}>
+          <StatusBar style="light" />
+          <SkeletonLoader />
         </View>
       )}
     </>

@@ -1,10 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useFocusEffect } from "expo-router";
 import {
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,8 +13,9 @@ import {
   View,
 } from "react-native";
 import { PieChart } from "react-native-gifted-charts";
+import { API_URL } from "../../../config/config";
 // import { LinearGradient } from "expo-linear-gradient";
-
+import PortfolioPredictionGraph from "../../../components/PortfolioPredictionGraph";
 import PortfolioSummaryCard from "../../../components/PortfolioSummaryCard";
 import PositionRow from "../../../components/PositionRow";
 import SkeletonLoader from "../../../components/SkeletonLoader";
@@ -24,9 +26,32 @@ import { useData } from "../../../context/DataContext";
 export default function PortfolioScreen() {
   const [portfolio, setPortfolio] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [portfolioData, setPortfolioData] = useState(null);
+  const [predictionsLoading, setPredictionsLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
   const router = useRouter();
   const { token } = useAuth();
   const { setApiData } = useData();
+
+  const fetchPortfolioPredictions = async () => {
+    try {
+      setPredictionsLoading(true);
+
+      const response = await fetch(`${API_URL}/api/portfolio/prediction`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+      setPortfolioData(data);
+    } catch (error) {
+      console.error("Error fetching portfolio predictions:", error);
+    } finally {
+      setPredictionsLoading(false);
+    }
+  };
 
   async function load() {
     try {
@@ -34,6 +59,7 @@ export default function PortfolioScreen() {
       const data = await fetchPortfolio(token);
       setPortfolio(data);
       setApiData(data.positions);
+      // console.log(data.positions);
     } finally {
       setLoading(false);
     }
@@ -43,8 +69,15 @@ export default function PortfolioScreen() {
   useFocusEffect(
     useCallback(() => {
       load();
-    }, [token])
+      fetchPortfolioPredictions();
+    }, [token]),
   );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    Promise.allSettled([load(), fetchPortfolioPredictions()]);
+    setTimeout(() => setRefreshing(false), 2000);
+  }, [token]);
 
   function getColorFromSymbol(symbol) {
     let hash = 0;
@@ -74,25 +107,20 @@ export default function PortfolioScreen() {
     return <SkeletonLoader />;
   }
 
-  if (
-    portfolio?.distribution?.length === 0 &&
-    portfolio?.summary?.length === 0
-  ) {
+  if (!portfolio?.positions?.length) {
     return (
       <View style={styles.emptyScreen}>
+        <Text style={styles.emptyTitle}>Your portfolio is empty</Text>
+        <Text style={styles.emptyText}>
+          Add your first holding to track performance and see AI forecasts.
+        </Text>
         <TouchableOpacity
-          style={styles.emptyContainer}
-          activeOpacity={0.9}
+          style={styles.emptyButton}
+          activeOpacity={0.85}
           onPress={() => router.push("/portfolio/add-stock")}
         >
-          <Ionicons
-            name="add"
-            size={28}
-            color="#FFD700"
-            style={styles.emptyIcon}
-          />
-
-          <Text style={styles.emptyText}>Add portfolio to get started</Text>
+          <Ionicons name="add" size={20} color="#141414" />
+          <Text style={styles.emptyButtonText}>Add Portfolio</Text>
         </TouchableOpacity>
       </View>
     );
@@ -101,7 +129,16 @@ export default function PortfolioScreen() {
   return (
     <View style={styles.screen}>
       <StatusBar style="light" />
-      <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 100 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#FFD700"
+          />
+        }
+      >
         <Text style={styles.title}>Portfolio</Text>
 
         {loading ? (
@@ -121,6 +158,7 @@ export default function PortfolioScreen() {
                     data={pieData}
                     radius={60}
                     innerRadius={40}
+                    innerCircleColor="#141414"
                     donut
                     showText={false}
                   />
@@ -139,7 +177,7 @@ export default function PortfolioScreen() {
                         ]}
                       />
                       <Text style={styles.legendText}>
-                        {d.symbol} • ${d.value.toFixed(2)}
+                        {d.symbol} • Rs.{d.value.toFixed(2)}
                       </Text>
                     </View>
                   ))}
@@ -149,14 +187,12 @@ export default function PortfolioScreen() {
 
             {/* AI predictions card (fake line chart box for now) */}
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>AI Predictions</Text>
-              <Text style={styles.cardSub}>
-                Expected growth over the next 30 days
-              </Text>
-              <View style={styles.chartBox} />
-              <Text style={styles.hint}>
-                Will Add AI Predictions based on user Portfolio
-              </Text>
+              {/* Your other components */}
+
+              <PortfolioPredictionGraph
+                portfolioData={portfolioData}
+                loading={predictionsLoading}
+              />
             </View>
 
             {/* Positions list */}
@@ -225,7 +261,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: "#141414",
     borderRadius: 16,
-    marginHorizontal: 16,
+    marginHorizontal: 6,
     marginTop: 16,
     padding: 16,
   },
@@ -274,31 +310,50 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: 32,
     backgroundColor: "#070707",
   },
-
-  emptyContainer: {
-    width: "100%",
-    maxWidth: 320,
-    paddingVertical: 28,
-    borderRadius: 18,
+  emptyIllustration: {
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    backgroundColor: "rgba(255, 215, 0, 0.08)",
     borderWidth: 1,
-    borderColor: "rgba(255, 215, 0, 0.6)",
+    borderColor: "rgba(255, 215, 0, 0.25)",
+    justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "transparent",
+    marginBottom: 24,
   },
-
-  emptyIcon: {
-    marginBottom: 10,
-    opacity: 0.85,
+  emptyTitle: {
+    fontSize: 18,
+    color: "#E8EAED",
+    fontWeight: "700",
+    marginBottom: 8,
+    textAlign: "center",
   },
-
   emptyText: {
-    fontSize: 14,
+    fontSize: 13,
     color: "#A9A9A9",
     fontWeight: "400",
     letterSpacing: 0.2,
+    textAlign: "center",
+    lineHeight: 19,
+    marginBottom: 24,
+    maxWidth: 280,
+  },
+  emptyButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFD700",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 24,
+  },
+  emptyButtonText: {
+    color: "#141414",
+    fontWeight: "700",
+    marginLeft: 6,
+    fontSize: 14,
   },
   more: { color: "#FFD700", alignSelf: "center", marginVertical: 12 },
 });

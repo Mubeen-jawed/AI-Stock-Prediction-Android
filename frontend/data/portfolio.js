@@ -1,4 +1,4 @@
-import { API_URL } from "../app/config/config";
+import { API_URL } from "../config/config";
 
 export async function fetchPortfolio(token) {
   try {
@@ -31,7 +31,6 @@ export async function fetchPortfolio(token) {
 
     // Convert backend shape → frontend UI shape
     const positions = data.portfolio.map((s) => ({
-      logo: s.logo,
       symbol: s.symbol,
       name: s.companyName,
       quantity: s.quantity,

@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const Portfolio = require("../models/Portfolio.js");
-const { getLivePrice, fetchPSXData, fetchSingleStock } = require("../services/stockService.js");
+const { getLivePrice } = import("../services/stockService.js");
 const { predictPrice } = require("../services/predictionService.js");
 
 // Create new portfolio
@@ -14,8 +14,8 @@ const createPortfolio = async (req, res) => {
         .json({ message: "Please provide at least one stock" });
     }
 
-    // Use static ID for now as requested
-    const userId = req.user?._id || new mongoose.Types.ObjectId("68f7af8fec413749bb1f58e8");
+    // For testing: use hardcoded ID if no user in request
+    const userId = req.user._id;
 
     let portfolio = await Portfolio.findOne({ user: userId });
 
@@ -29,7 +29,7 @@ const createPortfolio = async (req, res) => {
 
     stocks.forEach((incoming) => {
       const existing = portfolio.stocks.find(
-        (s) => s.symbol === incoming.symbol
+        (s) => s.symbol === incoming.symbol,
       );
 
       if (existing) {
@@ -59,7 +59,7 @@ const createPortfolio = async (req, res) => {
 // Get all portfolios of a user
 //  const getPortfolios = async (req, res) => {
 //   try {
-//     const portfolios = await Portfolio.find({ user: req.user?._id });
+//     const portfolios = await Portfolio.find({ user: req.user._id });
 //     res.status(200).json(portfolios);
 //   } catch (error) {
 //     res.status(500).json({ message: error.message });
@@ -72,8 +72,7 @@ const deletePortfolio = async (req, res) => {
   try {
     const { symbol } = req.params;
 
-    const userId = req.user?._id || new mongoose.Types.ObjectId("68f7af8fec413749bb1f58e8");
-    const portfolio = await Portfolio.findOne({ user: userId });
+    const portfolio = await Portfolio.findOne({ user: req.user._id });
     if (!portfolio) {
       return res.status(404).json({ message: "Portfolio not found" });
     }
@@ -81,7 +80,7 @@ const deletePortfolio = async (req, res) => {
     const before = portfolio.stocks.length;
 
     portfolio.stocks = portfolio.stocks.filter(
-      (s) => (s.symbol || "").toUpperCase() !== String(symbol).toUpperCase()
+      (s) => (s.symbol || "").toUpperCase() !== String(symbol).toUpperCase(),
     );
 
     if (portfolio.stocks.length === before) {
@@ -101,63 +100,26 @@ const deletePortfolio = async (req, res) => {
 
 const getPortfolioPerformance = async (req, res) => {
   try {
-    // Static ID for now as requested
-    const userId = req.user?._id ||  new mongoose.Types.ObjectId("68f7af8fec413749bb1f58e8");
-    const portfolio = await Portfolio.findOne({ user: userId });
-
-    if (!portfolio || !portfolio.stocks || portfolio.stocks.length === 0) {
-      return res.json({ 
-        summary: {
-          totalInvested: 0,
-          totalValue: 0,
-          totalGainLoss: 0,
-          overallChangePct: 0
-        },
-        portfolio: [] 
-      });
+    if (!req.user?._id) {
+      return res.status(401).json({ message: "Not authenticated" });
     }
 
-    // 1. Fetch live PSX prices for matching
-    let liveData = [];
-    try {
-      liveData = await fetchPSXData();
-    } catch (e) {
-      console.warn("Could not fetch live PSX data for portfolio, using saved prices:", e.message);
+    const portfolio = await Portfolio.findOne({ user: req.user._id });
+
+    if (!portfolio || !portfolio.stocks || portfolio.stocks.length === 0) {
+      return res.json({ portfolio: [] });
     }
 
     const results = [];
-    let totalInvested = 0;
-    let totalValue = 0;
 
-    // 2. Loop over saved stocks and calculate metrics
+    // 2) Loop over saved stocks in DB
     for (const stock of portfolio.stocks) {
-      let liveInfo = liveData.find(ld => ld.symbol === stock.symbol.toUpperCase());
-      
-      if (!liveInfo) {
-        try {
-          const single = await fetchSingleStock(stock.symbol);
-          if (single) {
-            liveInfo = {
-              price: single.price,
-              changeAbsolute: single.changeAbsolute,
-              changePercent: single.changePercent,
-              lastUpdated: single.lastUpdated
-            };
-          }
-        } catch (e) {
-          console.warn(`Could not fetch fallback price for ${stock.symbol}:`, e.message);
-        }
-      }
+      // const live = await getLivePrice(stock.symbol); // your helper
 
-      const currentPrice = liveInfo ? (liveInfo.price || liveInfo.currentPrice) : (stock.currentPrice || stock.buyPrice || 0);
-      
-      const investedAmount = stock.quantity * stock.buyPrice;
-      const marketValue = stock.quantity * currentPrice;
-      const profitLoss = marketValue - investedAmount;
-      const percentChange = investedAmount > 0 ? (profitLoss / investedAmount) * 100 : 0;
-
-      totalInvested += investedAmount;
-      totalValue += marketValue;
+      // const totalValue = stock.quantity * stock.currentPrice;
+      // const invested = stock.quantity * stock.buyPrice;
+      // const profitLoss = totalValue - invested;
+      // const percentChange = ((profitLoss / invested) * 100).toFixed(2);
 
       results.push({
         logo: stock.logo,
@@ -165,41 +127,24 @@ const getPortfolioPerformance = async (req, res) => {
         companyName: stock.companyName,
         quantity: stock.quantity,
         buyPrice: stock.buyPrice,
-        currentPrice: currentPrice,
-        investedAmount: parseFloat(investedAmount.toFixed(2)),
-        marketValue: parseFloat(marketValue.toFixed(2)),
-        profitLoss: parseFloat(profitLoss.toFixed(2)),
-        percentChange: parseFloat(percentChange.toFixed(2)),
-        changeAbsolute: liveInfo ? liveInfo.changeAbsolute : 0,
-        changePercent: liveInfo ? liveInfo.changePercent : 0,
-        lastUpdated: liveInfo ? liveInfo.lastUpdated : null
+        currentPrice: stock.currentPrice,
       });
     }
 
-    const totalGainLoss = totalValue - totalInvested;
-    const overallChangePct = totalInvested > 0 ? (totalGainLoss / totalInvested) * 100 : 0;
-
-    // 3. Send detailed response
-    res.json({
-      summary: {
-        totalInvested: parseFloat(totalInvested.toFixed(2)),
-        totalValue: parseFloat(totalValue.toFixed(2)),
-        totalGainLoss: parseFloat(totalGainLoss.toFixed(2)),
-        overallChangePct: parseFloat(overallChangePct.toFixed(2))
-      },
-      portfolio: results
-    });
+    // 3) Send response
+    res.json({ portfolio: results });
   } catch (err) {
-    console.error("Portfolio performance error:", err);
+    console.error(err);
     res.status(500).json({ message: "Error fetching portfolio data" });
   }
 };
 
 const updateHoldings = async (req, res) => {
   try {
-    // Use static ID for now as requested
-    const userId = req.user?._id || new mongoose.Types.ObjectId("68f7af8fec413749bb1f58e8");
+    const userId = req.user?._id;
     const { payload } = req.body; // [{ symbol, quantity, buyPrice }]
+
+    console.log(req.body);
 
     if (!Array.isArray(payload) || payload.length === 0) {
       return res.status(400).json({ message: "payload array is required" });
@@ -227,7 +172,7 @@ const updateHoldings = async (req, res) => {
     const updated = await Portfolio.findOneAndUpdate(
       { user: userId },
       { $set: setObj },
-      { new: true, arrayFilters }
+      { new: true, arrayFilters },
     );
 
     if (!updated)
@@ -238,22 +183,17 @@ const updateHoldings = async (req, res) => {
     console.error(err);
     return res.status(500).json({ message: "Server error" });
   }
-  }
-
+};
 
 const getPortfolioPrediction = async (req, res) => {
   try {
-    const { days = 7, modelType = "lstm"} = req.query;
-    
-    // Use static ID for now as requested
-    const id = req.user?._id || new mongoose.Types.ObjectId("68f7af8fec413749bb1f58e8");
-    // const id = req.user?._id;
+    const { days = 7, modelType = "lstm" } = req.query;
 
-    if (!id) {
-        return res.status(400).json({ message: "User ID required (auth disabled)" });
+    if (!req.user?._id) {
+      return res.status(401).json({ message: "Not authenticated" });
     }
 
-    const portfolio = await Portfolio.findOne({ user: id });
+    const portfolio = await Portfolio.findOne({ user: req.user._id });
 
     if (!portfolio || !portfolio.stocks || portfolio.stocks.length === 0) {
       return res.json({
@@ -263,43 +203,28 @@ const getPortfolioPrediction = async (req, res) => {
       });
     }
 
-    // 1. Fetch live PSX prices for current reference
-    let liveData = [];
-    try {
-      liveData = await fetchPSXData();
-    } catch (e) {
-      console.warn("Could not fetch live PSX data for prediction:", e.message);
-    }
-
     let currentTotal = 0;
     let predictedTotal = 0;
     const results = [];
 
-    // 2. Process each stock
+    // Process each stock
+    // Use Promise.all to fetch predictions in parallel
     await Promise.all(
       portfolio.stocks.map(async (stock) => {
         try {
-          // Find live price
-          let liveInfo = liveData.find(ld => ld.symbol === stock.symbol.toUpperCase());
-          if (!liveInfo) {
-            try {
-              const single = await fetchSingleStock(stock.symbol);
-              if (single) liveInfo = single;
-            } catch (err) { /* ignore */ }
-          }
-          
-          const currentPrice = liveInfo ? (liveInfo.price || liveInfo.currentPrice) : (stock.currentPrice || stock.buyPrice || 0);
-
           const prediction = await predictPrice(
             stock.symbol,
             Number(days),
-            modelType
+            modelType,
           );
-          
-          const lastPred = prediction.predictions[prediction.predictions.length - 1];
-          const predictedPrice = lastPred ? lastPred.price : currentPrice;
 
-          const stockValue = stock.quantity * currentPrice;
+          // Get the last predicted price (for the target day)
+          // prediction.predictions is an array of { date, price }
+          const lastPred =
+            prediction.predictions[prediction.predictions.length - 1];
+          const predictedPrice = lastPred ? lastPred.price : stock.currentPrice;
+
+          const stockValue = stock.quantity * stock.currentPrice;
           const predictedStockValue = stock.quantity * predictedPrice;
 
           currentTotal += stockValue;
@@ -308,38 +233,38 @@ const getPortfolioPrediction = async (req, res) => {
           results.push({
             symbol: stock.symbol,
             quantity: stock.quantity,
-            currentPrice: currentPrice,
+            currentPrice: stock.currentPrice,
             predictedPrice: predictedPrice,
-            currentValue: parseFloat(stockValue.toFixed(2)),
-            predictedValue: parseFloat(predictedStockValue.toFixed(2)),
-            predictionData: prediction.predictions,
+            currentValue: stockValue,
+            predictedValue: predictedStockValue,
+            predictionData: prediction.predictions, // Include full trend
           });
         } catch (error) {
-          console.error(`Prediction failed for ${stock.symbol}:`, error.message);
-          
-          let liveInfo = liveData.find(ld => ld.symbol === stock.symbol.toUpperCase());
-          const currentPrice = liveInfo ? (liveInfo.price || liveInfo.currentPrice) : (stock.currentPrice || stock.buyPrice || 0);
-          
-          const stockValue = stock.quantity * currentPrice;
+          console.error(
+            `Prediction failed for ${stock.symbol}:`,
+            error.message,
+          );
+          // Fallback to current price if prediction fails
+          const stockValue = stock.quantity * stock.currentPrice;
           currentTotal += stockValue;
-          predictedTotal += stockValue;
+          predictedTotal += stockValue; // Assume no change on error
 
           results.push({
             symbol: stock.symbol,
             quantity: stock.quantity,
-            currentPrice: currentPrice,
-            predictedPrice: currentPrice,
-            currentValue: parseFloat(stockValue.toFixed(2)),
-            predictedValue: parseFloat(stockValue.toFixed(2)),
+            currentPrice: stock.currentPrice,
+            predictedPrice: stock.currentPrice,
+            currentValue: stockValue,
+            predictedValue: stockValue,
             error: "Prediction unavailable",
           });
         }
-      })
+      }),
     );
 
     res.json({
-      currentTotal: parseFloat(currentTotal.toFixed(2)),
-      predictedTotal: parseFloat(predictedTotal.toFixed(2)),
+      currentTotal,
+      predictedTotal,
       portfolio: results,
     });
   } catch (err) {

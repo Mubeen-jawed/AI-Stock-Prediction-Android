@@ -1,8 +1,13 @@
 const axios = require("axios");
+const https = require("https");
 const dotenv = require("dotenv");
 const cheerio = require("cheerio");
 
 dotenv.config();
+
+// Force IPv4, Yahoo Finance over IPv6 is unreachable on many networks and
+// causes axios to ETIMEDOUT instead of falling back like curl does.
+const ipv4Agent = new https.Agent({ family: 4, keepAlive: true });
 
 const FINNHUB_BASE = "https://finnhub.io/api/v1";
 
@@ -47,13 +52,13 @@ const getAllSharesList = async (exchange = "US") => {
   } catch (err) {
     console.error(
       "Error fetching stock list:",
-      err.response?.data || err.message
+      err.response?.data || err.message,
     );
     throw new Error("Unable to fetch stock list");
   }
 };
 
-async function fetchStockData(ticker = "PPL") {
+async function fetchStockData(ticker = "AAPL") {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=60d`;
 
   const response = await axios.get(url);
@@ -167,7 +172,7 @@ const getCandlesTwelveData = async (symbol, range = "1M") => {
           Number.isFinite(c.open) &&
           Number.isFinite(c.high) &&
           Number.isFinite(c.low) &&
-          Number.isFinite(c.close)
+          Number.isFinite(c.close),
       )
       .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
@@ -183,8 +188,118 @@ const getCandlesTwelveData = async (symbol, range = "1M") => {
     throw new Error(msg);
   }
 };
-const fetchPSXData = async () => {
+const fetchPSXData = async (filterKSE30 = false) => {
   const url = "https://scanner.tradingview.com/pakistan/scan";
+
+  const KSE30_STOCKS = [
+    "AIRLINK",
+    "ATRL",
+    "CNERGY",
+    "CPHL",
+    "DGKC",
+    "EFERT",
+    "FCCL",
+    "FFL",
+    "FFC",
+    "GHNI",
+    "GLAXO",
+    "HUBC",
+    "ISL",
+    "LUCK",
+    "MARI",
+    "MEBL",
+    "MLCF",
+    "NRL",
+    "OGDC",
+    "PAEL",
+    "PRL",
+    "PPL",
+    "PSO",
+    "SAZEW",
+    "SEARL",
+    "SNGP",
+    "SSGC",
+    "SYS",
+    // --- Added blue-chips (20) ---
+    "HBL",
+    "UBL",
+    "MCB",
+    "BAHL",
+    "BAFL",
+    "NBP",
+    "POL",
+    "APL",
+    "SHEL",
+    "INDU",
+    "MTL",
+    "HCAR",
+    "NESTLE",
+    "COLG",
+    "NATF",
+    "EPCL",
+    "FATIMA",
+    "NML",
+    "ILP",
+    "KEL",
+  ];
+
+  // Create a mapping object from symbol to logo
+  const LOGO_MAP = {
+    AIRLINK: "airlinkcommunication.com",
+    ATRL: "atrl.com.pk",
+    CNERGY: "cnergyico.com",
+    CPHL: "cphl.com.pk",
+    DGKC: "dgcement.com",
+    EFERT: "engrofertilizers.com",
+    FCCL: "fcccl.com",
+    FFL: "ffbl.com",
+    FFC: "ffc.com.pk",
+    GHNI: "ghni.com.pk",
+    GLAXO: "gsk.com",
+    HUBC: "hubpower.com",
+    ISL: "isl.com.pk",
+    LUCK: "lucky-cement.com",
+    MARI: "maripetroleum.com",
+    MEBL: "meezanbank.com",
+    MLCF: "mapleleafcement.com",
+    NRL: "nrl.com.pk",
+    OGDC: "ogdcl.com",
+    PAEL: "pak-elektron.com",
+    PRL: "prl.com.pk",
+    PPL: "ppl.com.pk",
+    PSO: "psopk.com",
+    SAZEW: "sazew.com.pk",
+    SEARL: "searlecompany.com",
+    SNGP: "sngpl.com.pk",
+    SSGC: "ssgc.com.pk",
+    SYS: "systems.com.pk",
+    // --- Added blue-chips (20) ---
+    HBL: "hbl.com",
+    UBL: "ubl.com.pk",
+    MCB: "mcb.com.pk",
+    BAHL: "bankalhabib.com",
+    BAFL: "bankalfalah.com",
+    NBP: "nbp.com.pk",
+    POL: "pakoil.com.pk",
+    APL: "apl.com.pk",
+    SHEL: "shell.com.pk",
+    INDU: "toyota-indus.com",
+    MTL: "millattractors.com",
+    HCAR: "honda.com.pk",
+    NESTLE: "nestle.pk",
+    COLG: "colgate.com.pk",
+    NATF: "nationalfoods.com",
+    EPCL: "engropolymer.com",
+    FATIMA: "fatima-group.com",
+    NML: "nishatmills.com",
+    ILP: "interloop-pk.com",
+    KEL: "ke.com.pk",
+  };
+
+  // Build tickers array for KSE-30 if filtering
+  const tickers = filterKSE30
+    ? KSE30_STOCKS.map((symbol) => `PSX:${symbol}`)
+    : [];
 
   const body = {
     filter: [],
@@ -192,7 +307,7 @@ const fetchPSXData = async () => {
     markets: ["pakistan"],
     symbols: {
       query: { types: [] },
-      tickers: [],
+      tickers: tickers,
     },
     columns: [
       "name",
@@ -210,10 +325,11 @@ const fetchPSXData = async () => {
       sortBy: "name",
       sortOrder: "asc",
     },
-    range: [0, 500],
+    range: [0, filterKSE30 ? 60 : 500],
   };
 
-  const res = await axios.post(url, body, {
+  const res = await fetch(url, {
+    method: "POST",
     headers: {
       "Content-Type": "application/json",
       "User-Agent": "Mozilla/5.0",
@@ -221,82 +337,232 @@ const fetchPSXData = async () => {
       Origin: "https://www.tradingview.com",
       Referer: "https://www.tradingview.com/",
     },
+    body: JSON.stringify(body),
   });
 
-  const json = res.data;
+  const text = await res.text();
+
+  if (!text.startsWith("{")) {
+    console.error("Non-JSON response:", text);
+    return [];
+  }
+
+  const json = JSON.parse(text);
+
   // Format current time in Pakistan Standard Time (UTC+5)
   const pktTime =
     new Date(new Date().getTime() + 5 * 60 * 60 * 1000)
       .toISOString()
       .replace("Z", "") + "+05:00";
 
-  return json.data.map((item) => {
-    const price = item.d[1];
-    const open = item.d[4];
-    return {
-      symbol: item.s.replace("PSX:", ""),
-      price: parseFloat(price.toFixed(2)),
-      // Change relative to Previous Day's Close
-      changePercent: parseFloat(item.d[2].toFixed(2)),
-      changeAbsolute: parseFloat(item.d[3].toFixed(2)),
-      // Change relative to Today's Open
-      open: parseFloat(open.toFixed(2)),
-      high: parseFloat(item.d[5].toFixed(2)),
-      low: parseFloat(item.d[6].toFixed(2)),
-      volume: item.d[7],
-      lastUpdated: pktTime,
-      dataDelay: "15 min (TradingView Delayed)",
-    };
-  });
+  return json.data
+    .map((item) => {
+      // Helper function to safely parse numbers
+      const safeNumber = (value, decimals = 2) => {
+        if (value == null || isNaN(value)) return null;
+        return parseFloat(Number(value).toFixed(decimals));
+      };
+
+      const price = safeNumber(item.d[1]);
+      const changePercent = safeNumber(item.d[2]);
+      const changeAbsolute = safeNumber(item.d[3]);
+      const open = safeNumber(item.d[4]);
+      const high = safeNumber(item.d[5]);
+      const low = safeNumber(item.d[6]);
+
+      // Skip stocks with missing critical data
+      if (price === null) {
+        console.warn(`Skipping ${item.s} - missing price data`);
+        return null;
+      }
+
+      const symbol = item.s.replace("PSX:", "");
+
+      // Get logo from mapping, or generate from symbol if not found
+      const logo = LOGO_MAP[symbol];
+
+      return {
+        symbol,
+        name: item.d?.[0] || symbol, // Use the name from TradingView data
+        price,
+        changePercent: changePercent ?? 0,
+        changeAbsolute: changeAbsolute ?? 0,
+        open: open ?? price,
+        high: high ?? price,
+        low: low ?? price,
+        volume: item.d[7] ?? 0,
+        logo, // Add logo field
+        lastUpdated: pktTime,
+        dataDelay: "15 min (TradingView Delayed)",
+        isKSE30: KSE30_STOCKS.includes(symbol),
+      };
+    })
+    .filter((item) => item !== null);
 };
 
-const getPSXHistory = async (symbol, range, interval) => {
-  const yahooSymbol = `${symbol.toUpperCase()}.KA`;
-  // range=max for full history, interval=1d for daily candles
-  // NOTE: Yahoo Finance often ignores intraday intervals (e.g., 15m, 1h) for PSX symbols and returns daily data instead.
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?interval=${
-    interval || "1d"
-  }&range=${range || "max"}`;
+const fetchYahooCandles = async (yahooSymbol, range, interval) => {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}`;
 
-  try {
-    const response = await axios.get(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0", // Yahoo sometimes blocks without UA
-      },
-    });
+  const response = await axios.get(url, {
+    params: { interval, range, includePrePost: false },
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      Accept: "application/json,text/javascript,*/*;q=0.9",
+      "Accept-Language": "en-US,en;q=0.9",
+      Referer: `https://finance.yahoo.com/quote/${yahooSymbol}`,
+    },
+    timeout: 12000,
+    httpsAgent: ipv4Agent,
+    validateStatus: () => true, // we'll inspect status manually
+  });
 
-    const result = response.data?.chart?.result?.[0];
-    if (!result) {
-      throw new Error("No data found in Yahoo Finance response");
-    }
+  if (response.status >= 400) {
+    const detail =
+      response.data?.chart?.error?.description ||
+      response.data?.finance?.error?.description ||
+      `HTTP ${response.status}`;
+    const e = new Error(detail);
+    e.status = response.status;
+    throw e;
+  }
 
-    const timestamps = result.timestamp;
-    const quote = result.indicators.quote[0];
+  const result = response.data?.chart?.result?.[0];
+  if (!result) return [];
 
-    if (!timestamps || !quote) {
-      return { symbol, history: [] };
-    }
+  const timestamps = result.timestamp;
+  const quote = result.indicators?.quote?.[0];
+  if (!timestamps || !quote) return [];
 
-    const history = timestamps
-      .map((ts, i) => ({
+  return timestamps
+    .map((ts, i) => {
+      if (
+        quote.open?.[i] == null ||
+        quote.high?.[i] == null ||
+        quote.low?.[i] == null ||
+        quote.close?.[i] == null
+      ) {
+        return null;
+      }
+      return {
         timestamp: new Date(ts * 1000).toISOString(),
         open: quote.open[i],
         high: quote.high[i],
         low: quote.low[i],
         close: quote.close[i],
-        volume: quote.volume[i],
-      }))
-      .filter((candle) => candle.open != null && candle.close != null); // Filter out empty/null candles
+        volume: quote.volume?.[i] || 0,
+      };
+    })
+    .filter(Boolean);
+};
+
+// Fallback ladder: if requested combo returns no candles (e.g. intraday on
+// closed-market days), try progressively wider/coarser combos until we get data.
+const FALLBACK_LADDER = {
+  "1d/15m": [["5d", "30m"], ["1mo", "1d"]],
+  "5d/30m": [["1mo", "1d"]],
+  "1mo/1d": [["3mo", "1d"]],
+  "6mo/1d": [["1y", "1d"]],
+  "1y/1d": [["2y", "1d"]],
+  "max/1d": [["5y", "1d"]],
+};
+
+const getPSXHistory = async (symbol, range = "1mo", interval = "1d") => {
+  const yahooSymbol = `${symbol.toUpperCase()}.KA`;
+  const attempts = [[range, interval], ...(FALLBACK_LADDER[`${range}/${interval}`] || [])];
+
+  let lastErr = null;
+  for (const [r, iv] of attempts) {
+    try {
+      const history = await fetchYahooCandles(yahooSymbol, r, iv);
+      if (history.length > 0) {
+        const usedFallback = r !== range || iv !== interval;
+        console.log(
+          `Fetched ${history.length} candles for ${symbol} (${r}/${iv})${usedFallback ? " [fallback]" : ""}`,
+        );
+        return {
+          symbol: symbol.toUpperCase(),
+          source: "Yahoo Finance",
+          range: r,
+          interval: iv,
+          requestedRange: range,
+          requestedInterval: interval,
+          fallback: usedFallback,
+          count: history.length,
+          history,
+        };
+      }
+    } catch (err) {
+      lastErr = err;
+      console.error(
+        `Yahoo fetch failed for ${symbol} (${r}/${iv}):`,
+        err.status || err.code || "",
+        err.message,
+      );
+      if (err.status === 404) {
+        throw new Error(`Stock ${symbol} not found`);
+      }
+    }
+  }
+
+  if (lastErr) {
+    throw new Error(`Failed to fetch history for ${symbol}: ${lastErr.message}`);
+  }
+
+  // No error, just no data anywhere on the ladder
+  return {
+    symbol: symbol.toUpperCase(),
+    source: "Yahoo Finance",
+    range,
+    interval,
+    count: 0,
+    history: [],
+  };
+};
+
+// Helper function to get current stock data (for completeness)
+const getPSXCurrentPrice = async (symbol) => {
+  const yahooSymbol = `${symbol.toUpperCase()}.KA`;
+
+  try {
+    const response = await axios.get(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}`,
+      {
+        params: {
+          interval: "1d",
+          range: "1d",
+        },
+        headers: {
+          "User-Agent": "Mozilla/5.0",
+        },
+      },
+    );
+
+    const result = response.data?.chart?.result?.[0];
+
+    if (!result) {
+      throw new Error(`No data found for ${symbol}`);
+    }
+
+    const meta = result.meta;
+    const quote = result.indicators.quote[0];
+
+    const timestamps = result.timestamp;
+    const lastIdx = timestamps.length - 1;
 
     return {
       symbol: symbol.toUpperCase(),
+      price: meta.regularMarketPrice || quote.close[lastIdx],
+      previousClose: meta.previousClose || meta.chartPreviousClose,
+      open: quote.open[lastIdx],
+      high: quote.high[lastIdx],
+      low: quote.low[lastIdx],
+      volume: quote.volume[lastIdx],
       source: "Yahoo Finance",
-      count: history.length,
-      history,
     };
   } catch (err) {
-    console.error(`Error fetching history for ${symbol}:`, err.message);
-    throw new Error(`Failed to fetch history for ${symbol}`);
+    console.error(`Error fetching current price for ${symbol}:`, err.message);
+    throw err;
   }
 };
 
@@ -347,33 +613,77 @@ async function fetchSingleStock(symbol) {
     markets: ["pakistan"],
     symbols: { query: { types: [] }, tickers: [psxTicker] },
     columns: [
-      "name", "close", "change", "change_abs", "open", "high", "low", "volume", "volume_change",
-      "market_cap_calc", "price_52_week_high", "price_52_week_low", "dividend_yield_recent",
-      "earnings_per_share_basic_ttm", "average_volume_10d_calc", "description", "sector", "industry",
-      "number_of_employees", "country", "exchange", "total_revenue", "total_assets",
-      "total_debt", "net_income", "free_cash_flow", "price_book_ratio", "return_on_equity_fy",
-      "return_on_assets_fy", "operating_margin_ttm", "debt_to_equity_fy", "total_shares_outstanding",
-      "average_volume_90d_calc", "relative_volume_10d_calc", "recommendation_mark", "RSI",
-      "MACD.macd", "MACD.signal", "EMA20", "EMA50", "EMA100", "time"
+      "name",
+      "close",
+      "change",
+      "change_abs",
+      "open",
+      "high",
+      "low",
+      "volume",
+      "volume_change",
+      "market_cap_calc",
+      "price_52_week_high",
+      "price_52_week_low",
+      "dividend_yield_recent",
+      "earnings_per_share_basic_ttm",
+      "average_volume_10d_calc",
+      "description",
+      "sector",
+      "industry",
+      "number_of_employees",
+      "country",
+      "exchange",
+      "total_revenue",
+      "total_assets",
+      "total_debt",
+      "net_income",
+      "free_cash_flow",
+      "price_book_ratio",
+      "return_on_equity_fy",
+      "return_on_assets_fy",
+      "operating_margin_ttm",
+      "debt_to_equity_fy",
+      "total_shares_outstanding",
+      "average_volume_90d_calc",
+      "relative_volume_10d_calc",
+      "recommendation_mark",
+      "RSI",
+      "MACD.macd",
+      "MACD.signal",
+      "EMA20",
+      "EMA50",
+      "EMA100",
+      "time",
     ],
     range: [0, 1],
   };
 
   try {
     const [tvRes, finnhubRes, newsRes] = await Promise.all([
-      axios.post(tvUrl, tvBody, {
-        headers: { "Content-Type": "application/json", "User-Agent": "Mozilla/5.0" },
-      }).then(r => r.data),
-      axios.get(`${FINNHUB_BASE}/stock/profile2`, {
-        params: { symbol: symbolUpper, token: process.env.FINNHUB_API_KEY }
-      }).catch(() => ({ data: {} })),
-      fetchStockNews(symbolUpper)
+      fetch(tvUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "User-Agent": "Mozilla/5.0",
+        },
+        body: JSON.stringify(tvBody),
+      }).then((r) => r.json()),
+      axios
+        .get(`${FINNHUB_BASE}/stock/profile2`, {
+          params: { symbol: symbolUpper, token: process.env.FINNHUB_API_KEY },
+        })
+        .catch(() => ({ data: {} })),
+      fetchStockNews(symbolUpper),
     ]);
 
     if (!tvRes.data || tvRes.data.length === 0) return null;
 
     const d = tvRes.data[0].d;
-    const pktTime = new Date(new Date().getTime() + 5 * 60 * 60 * 1000).toISOString().replace("Z", "") + "+05:00";
+    const pktTime =
+      new Date(new Date().getTime() + 5 * 60 * 60 * 1000)
+        .toISOString()
+        .replace("Z", "") + "+05:00";
 
     const price = d[1];
     const open = d[4];
@@ -391,7 +701,9 @@ async function fetchSingleStock(symbol) {
       changePercent: parseFloat(d[2].toFixed(2)),
       changeAbsolute: parseFloat(d[3].toFixed(2)),
       changeFromOpen: parseFloat((price - open).toFixed(2)),
-      changeFromOpenPercent: parseFloat((((price - open) / open) * 100).toFixed(2)),
+      changeFromOpenPercent: parseFloat(
+        (((price - open) / open) * 100).toFixed(2),
+      ),
       open: parseFloat(open.toFixed(2)),
       high: parseFloat(d[5].toFixed(2)),
       low: parseFloat(d[6].toFixed(2)),
@@ -407,44 +719,47 @@ async function fetchSingleStock(symbol) {
       sector: d[16] || profileData.finnhubIndustry || null,
       industry: d[17],
       profile: {
-          employees: d[18] || null,
-          country: d[19] || profileData.country || null,
-          exchange: d[20] || profileData.exchange || "PSX",
-          currency: profileData.currency || "PKR",
-          ipo: profileData.ipo || null,
-          phone: profileData.phone || null,
+        employees: d[18] || null,
+        country: d[19] || profileData.country || null,
+        exchange: d[20] || profileData.exchange || "PSX",
+        currency: profileData.currency || "PKR",
+        ipo: profileData.ipo || null,
+        phone: profileData.phone || null,
       },
       financials: {
-          totalRevenue: d[21],
-          totalAssets: d[22],
-          totalDebt: d[23],
-          netIncome: d[24],
-          freeCashFlow: d[25],
-          priceToBook: parseFloat((d[26] || 0).toFixed(2)),
-          roe: parseFloat((d[27] || 0).toFixed(2)),
-          roa: parseFloat((d[28] || 0).toFixed(2)),
-          operatingMargin: parseFloat((d[29] || 0).toFixed(2)),
-          debtToEquity: parseFloat((d[30] || 0).toFixed(2)),
-          sharesOutstanding: d[31],
+        totalRevenue: d[21],
+        totalAssets: d[22],
+        totalDebt: d[23],
+        netIncome: d[24],
+        freeCashFlow: d[25],
+        priceToBook: parseFloat((d[26] || 0).toFixed(2)),
+        roe: parseFloat((d[27] || 0).toFixed(2)),
+        roa: parseFloat((d[28] || 0).toFixed(2)),
+        operatingMargin: parseFloat((d[29] || 0).toFixed(2)),
+        debtToEquity: parseFloat((d[30] || 0).toFixed(2)),
+        sharesOutstanding: d[31],
       },
       technicals: {
-          avgVolume90d: d[32],
-          relativeVolume: parseFloat((d[33] || 0).toFixed(2)),
-          analystRating: d[34],
-          rsi: parseFloat((d[35] || 0).toFixed(2)),
-          macd: parseFloat((d[36] || 0).toFixed(2)),
-          macdSignal: parseFloat((d[37] || 0).toFixed(2)),
-          ema20: parseFloat((d[38] || 0).toFixed(2)),
-          ema50: parseFloat((d[39] || 0).toFixed(2)),
-          ema100: parseFloat((d[40] || 0).toFixed(2)),
+        avgVolume90d: d[32],
+        relativeVolume: parseFloat((d[33] || 0).toFixed(2)),
+        analystRating: d[34],
+        rsi: parseFloat((d[35] || 0).toFixed(2)),
+        macd: parseFloat((d[36] || 0).toFixed(2)),
+        macdSignal: parseFloat((d[37] || 0).toFixed(2)),
+        ema20: parseFloat((d[38] || 0).toFixed(2)),
+        ema50: parseFloat((d[39] || 0).toFixed(2)),
+        ema100: parseFloat((d[40] || 0).toFixed(2)),
       },
       news: newsRes,
       lastUpdated: pktTime,
       dataDelay: "15 min (TradingView Delayed)",
-      source: "Multi-Source (TradingView, Yahoo, Finnhub, Google News)"
+      source: "Multi-Source (TradingView, Yahoo, Finnhub, Google News)",
     };
   } catch (error) {
-    console.error(`Fetch single stock multi-source failed for ${symbol}:`, error.message);
+    console.error(
+      `Fetch single stock multi-source failed for ${symbol}:`,
+      error.message,
+    );
     return null;
   }
 }
@@ -458,4 +773,5 @@ module.exports = {
   getPSXHistory,
   fetchPSXData,
   fetchSingleStock,
+  getPSXCurrentPrice,
 };

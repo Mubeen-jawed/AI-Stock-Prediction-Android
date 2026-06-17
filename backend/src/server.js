@@ -13,10 +13,6 @@ app.use(
 
 const DEFAULT_PORT = 4000;
 
-console.log("Platform:", process.platform);
-console.log("Node:", process.version);
-console.log("CWD:", process.cwd());
-
 async function startServer(port) {
   try {
     await connectDB();

@@ -1,145 +1,185 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import SegmentTabs from "../../../components/SegmentTabs";
-import StockRow from "../../../components/StockRow";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import StockListRow from "../../../components/StockListRow";
+import SkeletonLoader from "../../../components/SkeletonLoader";
 import { fetchStocks } from "../../../data/stocks";
 import { useAuth } from "../../../context/AuthContext";
-import SkeletonLoader from "../../../components/SkeletonLoader";
 
-import apple from "../../../assets/images/stock-logos/apple.png";
-import microsoft from "../../../assets/images/stock-logos/microsoft.png";
-import nvidia from "../../../assets/images/stock-logos/nvidia.png";
-import tesla from "../../../assets/images/stock-logos/tesla.png";
+const SECTOR_BY_SYMBOL = {
+  AIRLINK: "Technology", ATRL: "Refinery", CNERGY: "Energy", CPHL: "Pharma",
+  DGKC: "Cement", EFERT: "Fertilizer", FCCL: "Cement", FFL: "Fertilizer",
+  FFC: "Fertilizer", GHNI: "Pharma", GLAXO: "Pharma", HUBC: "Power",
+  ISL: "Steel", LUCK: "Cement", MARI: "Oil & Gas", MEBL: "Banking",
+  MLCF: "Cement", NRL: "Refinery", OGDC: "Oil & Gas", PAEL: "Engineering",
+  PRL: "Refinery", PPL: "Oil & Gas", PSO: "Oil Marketing", SAZEW: "Auto",
+  SEARL: "Pharma", SNGP: "Gas", SSGC: "Gas", SYS: "Technology",
+  HBL: "Banking", UBL: "Banking", MCB: "Banking", POL: "Oil & Gas",
+};
+const sectorOf = (sym) => SECTOR_BY_SYMBOL[sym] || "Other";
 
-const TOP_TABS = ["All", "Hot", "Gainers", "Losers"];
+const ALL_SECTORS_LABEL = "All Sectors";
+const SORTS = ["Name (A-Z)", "Top Gainers", "Top Losers", "Volume"];
 
-const GAINERS = [
-  {
-    logo: apple,
-    name: "Apple",
-    ticker: "AAPL",
-    price: "228.54",
-    changePercent: 2.31,
-    vol: "24.8B",
-  },
-  {
-    logo: nvidia,
-    name: "NVIDIA",
-    ticker: "NVDA",
-    price: "123.91",
-    changePercent: 1.12,
-    vol: "18.3B",
-  },
-  {
-    logo: tesla,
-    name: "Tesla",
-    ticker: "TSLA",
-    price: "254.02",
-    changePercent: 3.1,
-    vol: "12.4B",
-  },
-  {
-    logo: microsoft,
-    name: "Microsoft",
-    ticker: "MSFT",
-    price: "425.77",
-    changePercent: 0.48,
-    vol: "9.7B",
-  },
-];
-
-// Bybit shows: Spot / Derivatives / TradFi. For stocks we map close to that:
+function FilterChip({ value, options, onChange }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <View style={{ flex: 1 }}>
+      <Pressable style={styles.chip} onPress={() => setOpen((o) => !o)}>
+        <Text style={styles.chipText} numberOfLines={1}>
+          {value}
+        </Text>
+        <Ionicons
+          name={open ? "chevron-up" : "chevron-down"}
+          size={14}
+          color="#F0B90B"
+        />
+      </Pressable>
+      {open && (
+        <View style={styles.menu}>
+          {options.map((opt) => (
+            <Pressable
+              key={opt}
+              style={styles.menuItem}
+              onPress={() => {
+                onChange(opt);
+                setOpen(false);
+              }}
+            >
+              <Text
+                style={[
+                  styles.menuText,
+                  opt === value && { color: "#F0B90B", fontWeight: "700" },
+                ]}
+              >
+                {opt}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
 
 export default function StocksScreen() {
-  const [topTab, setTopTab] = useState("Favorites");
-  const [q, setQ] = useState("");
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [q, setQ] = useState("");
+  const [sector, setSector] = useState(ALL_SECTORS_LABEL);
+  const [sort, setSort] = useState("Name (A-Z)");
 
   const { token } = useAuth();
 
-  async function load() {
+  async function load({ force = false } = {}) {
     setLoading(true);
-    const data = await fetchStocks({ topTab, q, token });
-    setRows(data);
+    const data = await fetchStocks({ topTab: "All", q: "", token, force });
+    setRows(Array.isArray(data) ? data : []);
     setLoading(false);
   }
 
-  // console.log("rows", rows);
-
-  // useEffect(() => {
-  //   fetchStocks({ topTab, subTab, q, token });
-  //   console.log(token);
-  // }, [topTab, subTab, q, token]);
-
   useEffect(() => {
     load();
-  }, [topTab, q, token]);
+  }, [token]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchStocks({ topTab: "All", q: "", token, force: true })
+      .then((data) => setRows(Array.isArray(data) ? data : []))
+      .catch(() => {});
+    setTimeout(() => setRefreshing(false), 2000);
+  }, [token]);
+
+  const sectorOptions = useMemo(() => {
+    const set = new Set(rows.map((s) => sectorOf(s.symbol)));
+    return [ALL_SECTORS_LABEL, ...Array.from(set).sort()];
+  }, [rows]);
+
+  const filtered = useMemo(() => {
+    let list = [...rows];
+
+    if (sector !== ALL_SECTORS_LABEL) {
+      list = list.filter((s) => sectorOf(s.symbol) === sector);
+    }
+
+    if (q.trim()) {
+      const t = q.trim().toLowerCase();
+      list = list.filter((s) =>
+        ((s.symbol || "") + " " + (s.name || "")).toLowerCase().includes(t),
+      );
+    }
+
+    if (sort === "Top Gainers") {
+      list.sort(
+        (a, b) => (Number(b.changePercent) || 0) - (Number(a.changePercent) || 0),
+      );
+    } else if (sort === "Top Losers") {
+      list = list
+        .filter((s) => (Number(s.changePercent) || 0) < 0)
+        .sort(
+          (a, b) =>
+            (Number(a.changePercent) || 0) - (Number(b.changePercent) || 0),
+        );
+    } else if (sort === "Volume") {
+      list.sort((a, b) => (Number(b.volume) || 0) - (Number(a.volume) || 0));
+    } else {
+      list.sort((a, b) => (a.symbol || "").localeCompare(b.symbol || ""));
+    }
+    return list;
+  }, [rows, q, sector, sort]);
 
   return (
     <View style={styles.screen}>
-      {/* Search bar + icons */}
-      <View style={styles.header}>
-        <View style={styles.search}>
-          <Ionicons name="search" size={18} color="#9aa0a6" />
-          <TextInput
-            value={q}
-            onChangeText={setQ}
-            placeholder="Search AAPL/TSLA"
-            placeholderTextColor="#9aa0a6"
-            style={styles.input}
-          />
-        </View>
+      {/* Search bar */}
+      <View style={styles.search}>
+        <Ionicons name="search" size={16} color="#9aa0a6" />
+        <TextInput
+          value={q}
+          onChangeText={setQ}
+          placeholder="Search stocks…"
+          placeholderTextColor="#9aa0a6"
+          style={styles.input}
+        />
       </View>
 
-      {/* Top tabs (Favorites | Hot | …) */}
-      {/* <SegmentTabs tabs={TOP_TABS} active={topTab} onChange={setTopTab} /> */}
-
-      {/* Sub tabs row (Spot | ETFs | Indices | TradFi) */}
-
-      {/* Table header (Bybit style labels) */}
-      <View style={styles.headRow}>
-        <Text style={[styles.hcell, { flex: 1.3 }]}>Trading Pairs / Vol •</Text>
-        <Text style={[styles.hcell, { flex: 1 }]}>Price •</Text>
-        <Text style={[styles.hcell, { width: 100, textAlign: "right" }]}>
-          24H Change •
-        </Text>
+      {/* Filter chips */}
+      <View style={styles.filters}>
+        <FilterChip
+          value={sector}
+          options={sectorOptions}
+          onChange={setSector}
+        />
+        <View style={{ width: 8 }} />
+        <FilterChip value={sort} options={SORTS} onChange={setSort} />
       </View>
 
       <ScrollView
-        style={styles.listCard}
-        contentContainerStyle={{ paddingVertical: 4 }}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 24 }}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#FFD700"
+          />
+        }
       >
         {loading ? (
           <SkeletonLoader />
+        ) : filtered.length === 0 ? (
+          <Text style={styles.empty}>No stocks found</Text>
         ) : (
-          <>
-            {GAINERS.map((s) => (
-              <StockRow key={s.ticker} {...s} />
-            ))}
-
-            {rows
-              .filter(
-                (s) =>
-                  s.name &&
-                  s.logo &&
-                  s.symbol &&
-                  typeof s.price === "number" &&
-                  s.changePercent !== undefined &&
-                  !GAINERS.some((g) => g.ticker === s.symbol)
-              )
-              .map((s) => (
-                <StockRow
-                  key={s.symbol}
-                  logo={s.logo}
-                  name={s.name}
-                  ticker={s.symbol}
-                  price={s.price.toLocaleString()}
-                  changePercent={s.changePercent}
-                />
-              ))}
-          </>
+          filtered.map((s) => <StockListRow key={s.symbol} stock={s} />)
         )}
       </ScrollView>
     </View>
@@ -148,24 +188,92 @@ export default function StocksScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#0D0D0D", paddingTop: 40 },
-  header: {
+
+  brandRow: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 14,
-    paddingTop: 10,
+    paddingBottom: 10,
   },
+  brand: {
+    color: "#e8eaed",
+    fontSize: 20,
+    fontWeight: "800",
+    marginLeft: 6,
+    letterSpacing: 0.3,
+  },
+  iconBtn: { marginLeft: 14 },
+
+  statusBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: "#141418",
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: "#23262d",
+  },
+  statusOpen: { fontSize: 12, fontWeight: "800", letterSpacing: 0.6 },
+  indexLabel: { color: "#e8eaed", fontSize: 12, fontWeight: "700" },
+  indexPct: { fontSize: 12, fontWeight: "700" },
+  dateText: { color: "#9aa0a6", fontSize: 11 },
+
   search: {
-    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#1A1A1A",
     borderRadius: 14,
     paddingHorizontal: 10,
     height: 36,
+    marginHorizontal: 14,
+    marginTop: 10,
   },
   input: { flex: 1, color: "#fff", marginLeft: 6 },
-  headRow: { flexDirection: "row", paddingHorizontal: 16, marginTop: 14 },
-  hcell: { color: "#9aa0a6", fontSize: 12 },
-  listCard: { backgroundColor: "transparent", marginTop: 4 },
-  loading: { color: "#e8eaed", paddingHorizontal: 16, paddingVertical: 20 },
+
+  filters: {
+    flexDirection: "row",
+    paddingHorizontal: 14,
+    marginTop: 10,
+    marginBottom: 6,
+    zIndex: 10,
+  },
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#1A1A1A",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    height: 32,
+  },
+  chipText: { color: "#e8eaed", fontSize: 12, fontWeight: "600", flex: 1 },
+  menu: {
+    position: "absolute",
+    top: 36,
+    left: 0,
+    right: 0,
+    backgroundColor: "#141418",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#23262d",
+    overflow: "hidden",
+    zIndex: 20,
+  },
+  menuItem: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#1c1f24",
+  },
+  menuText: { color: "#e8eaed", fontSize: 12 },
+
+  empty: {
+    color: "#9aa0a6",
+    textAlign: "center",
+    paddingVertical: 40,
+    fontSize: 13,
+  },
 });

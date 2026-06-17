@@ -6,13 +6,13 @@ export default function PortfolioSummaryCard({ summary }) {
   return (
     <View style={styles.card}>
       <Text style={styles.label}>Portfolio Value</Text>
-      <Text style={styles.value}>${summary.currentValue.toFixed(2)}</Text>
+      <Text style={styles.value}>Rs.{summary.currentValue.toFixed(2)}</Text>
 
       <View style={styles.row}>
         <View>
           <Text style={styles.subLabel}>Invested</Text>
           <Text style={styles.subValue}>
-            ${summary.totalInvested.toFixed(2)}
+            Rs.{summary.totalInvested.toFixed(2)}
           </Text>
         </View>
         <View style={{ alignItems: "flex-end" }}>
@@ -20,7 +20,8 @@ export default function PortfolioSummaryCard({ summary }) {
           <Text
             style={[styles.subValue, { color: up ? "#16C784" : "#EA3943" }]}
           >
-            {up ? "+" : "-"}${Math.abs(summary.pl).toFixed(2)} ({up ? "+" : "-"}
+            {up ? "+" : "-"}Rs.{Math.abs(summary.pl).toFixed(2)} (
+            {up ? "+" : "-"}
             {Math.abs(summary.plPercent).toFixed(2)}%)
           </Text>
         </View>
