@@ -5,7 +5,7 @@ const cheerio = require("cheerio");
 
 dotenv.config();
 
-// Force IPv4 — Yahoo Finance over IPv6 is unreachable on many networks and
+// Force IPv4, Yahoo Finance over IPv6 is unreachable on many networks and
 // causes axios to ETIMEDOUT instead of falling back like curl does.
 const ipv4Agent = new https.Agent({ family: 4, keepAlive: true });
 
@@ -220,6 +220,27 @@ const fetchPSXData = async (filterKSE30 = false) => {
     "SNGP",
     "SSGC",
     "SYS",
+    // --- Added blue-chips (20) ---
+    "HBL",
+    "UBL",
+    "MCB",
+    "BAHL",
+    "BAFL",
+    "NBP",
+    "POL",
+    "APL",
+    "SHEL",
+    "INDU",
+    "MTL",
+    "HCAR",
+    "NESTLE",
+    "COLG",
+    "NATF",
+    "EPCL",
+    "FATIMA",
+    "NML",
+    "ILP",
+    "KEL",
   ];
 
   // Create a mapping object from symbol to logo
@@ -252,6 +273,27 @@ const fetchPSXData = async (filterKSE30 = false) => {
     SNGP: "sngpl.com.pk",
     SSGC: "ssgc.com.pk",
     SYS: "systems.com.pk",
+    // --- Added blue-chips (20) ---
+    HBL: "hbl.com",
+    UBL: "ubl.com.pk",
+    MCB: "mcb.com.pk",
+    BAHL: "bankalhabib.com",
+    BAFL: "bankalfalah.com",
+    NBP: "nbp.com.pk",
+    POL: "pakoil.com.pk",
+    APL: "apl.com.pk",
+    SHEL: "shell.com.pk",
+    INDU: "toyota-indus.com",
+    MTL: "millattractors.com",
+    HCAR: "honda.com.pk",
+    NESTLE: "nestle.pk",
+    COLG: "colgate.com.pk",
+    NATF: "nationalfoods.com",
+    EPCL: "engropolymer.com",
+    FATIMA: "fatima-group.com",
+    NML: "nishatmills.com",
+    ILP: "interloop-pk.com",
+    KEL: "ke.com.pk",
   };
 
   // Build tickers array for KSE-30 if filtering
@@ -283,7 +325,7 @@ const fetchPSXData = async (filterKSE30 = false) => {
       sortBy: "name",
       sortOrder: "asc",
     },
-    range: [0, filterKSE30 ? 30 : 500],
+    range: [0, filterKSE30 ? 60 : 500],
   };
 
   const res = await fetch(url, {

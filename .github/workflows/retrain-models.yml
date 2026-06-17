@@ -2,7 +2,7 @@ name: Retrain AI models (weekly)
 
 on:
   schedule:
-    # Sundays 16:00 UTC = 21:00 PKT — well after Friday close,
+    # Sundays 16:00 UTC = 21:00 PKT, well after Friday close,
     # uses Friday's freshly-updated CSVs from the daily workflow.
     - cron: "0 16 * * 0"
   workflow_dispatch: {}
@@ -17,8 +17,8 @@ concurrency:
 jobs:
   retrain:
     runs-on: ubuntu-latest
-    # LSTM retrain for ~30 symbols on a CPU runner is the long pole.
-    timeout-minutes: 90
+    # LSTM retrain for ~50 symbols on a CPU runner is the long pole.
+    timeout-minutes: 180
 
     steps:
       - name: Checkout
@@ -100,7 +100,7 @@ jobs:
                   backend/ai-models/price-prediction/models/*_scaler.pkl \
                   backend/ai-models/price-prediction/models/*_prophet.pkl
           if git diff --cached --quiet; then
-            echo "No retrain changes — nothing to commit."
+            echo "No retrain changes, nothing to commit."
             exit 0
           fi
           git commit -m "chore(ai-models): weekly retrain $(date -u +%Y-%m-%d)"
