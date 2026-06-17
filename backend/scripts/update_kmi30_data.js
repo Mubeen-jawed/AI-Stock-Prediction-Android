@@ -9,7 +9,10 @@ const PYTHON_API_URL = process.env.PYTHON_API_URL || "http://127.0.0.1:8001";
 const KMI30_STOCKS = [
     'AIRLINK', 'ATRL', 'CNERGY', 'CPHL', 'DGKC', 'EFERT', 'ENGRO', 'FCCL', 'FFC', 'FFL',
     'GAL', 'GHNI', 'GLAXO', 'HUBC', 'IIL', 'ISL', 'LUCK', 'MLCF', 'MARI', 'MEBL',
-    'NRL', 'OGDC', 'PPL', 'PRL', 'PSO', 'PAEL', 'SAZEW', 'SEARL', 'SNGP', 'SSGC', 'SYS'
+    'NRL', 'OGDC', 'PPL', 'PRL', 'PSO', 'PAEL', 'SAZEW', 'SEARL', 'SNGP', 'SSGC', 'SYS',
+    // --- Added blue-chips (20) ---
+    'HBL', 'UBL', 'MCB', 'BAHL', 'BAFL', 'NBP', 'POL', 'APL', 'SHEL', 'INDU',
+    'MTL', 'HCAR', 'NESTLE', 'COLG', 'NATF', 'EPCL', 'FATIMA', 'NML', 'ILP', 'KEL'
 ];
 
 /**
