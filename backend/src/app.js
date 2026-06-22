@@ -8,6 +8,7 @@ const stockRoutes = require("./routes/stockRoutes.js");
 const predictRoutes = require("./routes/predictRoutes.js");
 const newsRoutes = require("./routes/newsRoutes.js");
 const calendarRoutes = require("./routes/calendarRoutes.js");
+const communityRoutes = require("./routes/communityRoutes.js");
 
 dotenv.config();
 
@@ -23,6 +24,7 @@ app.use("/api/portfolio", portfolioRoutes);
 app.use("/api/stocks", stockRoutes);
 app.use("/api/news", newsRoutes);
 app.use("/api/calendar", calendarRoutes);
+app.use("/api/ideas", communityRoutes);
 app.use("/predict", predictRoutes);
 // app.post("/predict", async (req, res) => {
 //   try {
