@@ -4,7 +4,7 @@ const { User } = require("../models/User.js");
 
 // Public base URL of THIS backend, used to build the OAuth callback URL that
 // must be registered with Google / Discord. Must be reachable by the browser
-// (a public https domain — providers reject raw LAN IPs).
+// (a public https domain, providers reject raw LAN IPs).
 const SERVER_URL = process.env.SERVER_URL || `http://localhost:${process.env.PORT || 4000}`;
 
 // Per-provider OAuth config. Each provider knows how to build its consent URL,

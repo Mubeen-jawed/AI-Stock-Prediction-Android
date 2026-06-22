@@ -104,7 +104,6 @@ export default function ProfileScreen() {
           >
             <Ionicons name="wallet-outline" size={22} color="#e8eaed" />
             <Text style={styles.featureTitle}>Your Portfolio</Text>
-            <Text style={styles.featureSub}>Check Now</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => router.push("/watchlist")}
@@ -112,7 +111,13 @@ export default function ProfileScreen() {
           >
             <Ionicons name="heart-outline" size={22} color="#e8eaed" />
             <Text style={styles.featureTitle}>Watchlist</Text>
-            <Text style={styles.featureSub}>Check Now</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.push("/brokers")}
+            style={styles.featureCard}
+          >
+            <Ionicons name="business-outline" size={22} color="#e8eaed" />
+            <Text style={styles.featureTitle}>Brokers</Text>
           </TouchableOpacity>
         </View>
 
@@ -195,15 +200,16 @@ const styles = StyleSheet.create({
 
   featureRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     paddingHorizontal: 16,
     marginTop: 16,
+    gap: 8,
   },
   featureCard: {
-    flex: 1,
+    width: "48%",
     backgroundColor: "#141414",
     borderRadius: 16,
     padding: 14,
-    marginRight: 8,
   },
   featureTitle: {
     color: "#e8eaed",

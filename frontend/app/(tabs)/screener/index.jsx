@@ -14,15 +14,25 @@ import { fetchAllStocks } from "../../../data/stocks";
 import { useAuth } from "../../../context/AuthContext";
 import SkeletonLoader from "../../../components/SkeletonLoader";
 
+// Sectors are intentionally broad so each bucket holds at least five stocks.
 const SECTOR_BY_SYMBOL = {
-  AIRLINK: "Technology", ATRL: "Refinery", CNERGY: "Energy", CPHL: "Pharma",
-  DGKC: "Cement", EFERT: "Fertilizer", FCCL: "Cement", FFL: "Fertilizer",
-  FFC: "Fertilizer", GHNI: "Pharma", GLAXO: "Pharma", HUBC: "Power",
-  ISL: "Steel", LUCK: "Cement", MARI: "Oil & Gas", MEBL: "Banking",
-  MLCF: "Cement", NRL: "Refinery", OGDC: "Oil & Gas", PAEL: "Engineering",
-  PRL: "Refinery", PPL: "Oil & Gas", PSO: "Oil Marketing", SAZEW: "Auto",
-  SEARL: "Pharma", SNGP: "Gas", SSGC: "Gas", SYS: "Technology",
-  HBL: "Banking", UBL: "Banking", MCB: "Banking", POL: "Oil & Gas",
+  // Oil & Gas (6)
+  MARI: "Oil & Gas", OGDC: "Oil & Gas", PPL: "Oil & Gas", POL: "Oil & Gas",
+  PSO: "Oil & Gas", CNERGY: "Oil & Gas",
+  // Energy & Utilities (6)
+  ATRL: "Energy & Utilities", NRL: "Energy & Utilities", PRL: "Energy & Utilities",
+  HUBC: "Energy & Utilities", SNGP: "Energy & Utilities", SSGC: "Energy & Utilities",
+  // Banking & Tech (6)
+  MEBL: "Banking & Tech", HBL: "Banking & Tech", UBL: "Banking & Tech",
+  MCB: "Banking & Tech", SYS: "Banking & Tech", AIRLINK: "Banking & Tech",
+  // Cement & Industrials (7)
+  DGKC: "Cement & Industrials", FCCL: "Cement & Industrials", LUCK: "Cement & Industrials",
+  MLCF: "Cement & Industrials", ISL: "Cement & Industrials", PAEL: "Cement & Industrials",
+  SAZEW: "Cement & Industrials",
+  // Pharma & Chemicals (7)
+  CPHL: "Pharma & Chemicals", GHNI: "Pharma & Chemicals", GLAXO: "Pharma & Chemicals",
+  SEARL: "Pharma & Chemicals", EFERT: "Pharma & Chemicals", FFL: "Pharma & Chemicals",
+  FFC: "Pharma & Chemicals",
 };
 const sectorOf = (sym) => SECTOR_BY_SYMBOL[sym] || "Other";
 
@@ -142,7 +152,7 @@ export default function ScreenerScreen() {
   const [priceMax, setPriceMax] = useState("");
   const [showFilters, setShowFilters] = useState(true);
 
-  // applied filter state — only refreshes when Apply is pressed
+  // applied filter state, only refreshes when Apply is pressed
   const [applied, setApplied] = useState({
     sector: ALL,
     sort: "Name (A-Z)",

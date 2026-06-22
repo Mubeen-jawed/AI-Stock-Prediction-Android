@@ -2,10 +2,10 @@
 //
 // Derives stock-specific AI Insights cards (smart summary, market sentiment,
 // risk analysis, notification feed) from the data the stock detail page
-// already fetches — the live PSX quote, the prediction payload (with its
+// already fetches, the live PSX quote, the prediction payload (with its
 // input_stats meta), the KSE-30 market snapshot, and symbol-tagged news.
 //
-// All values are derived directly from those inputs — nothing is fabricated.
+// All values are derived directly from those inputs, nothing is fabricated.
 
 import { fetchAllStocks } from "./stocks";
 import { fetchNews } from "./news";
@@ -144,27 +144,27 @@ function buildMarketSentiment(stocks) {
 
   let label = "Neutral";
   let color = "#FFD700";
-  let blurb = `Breadth is balanced — ${advancers} up vs ${decliners} down on the KSE-30.`;
+  let blurb = `Breadth is balanced, ${advancers} up vs ${decliners} down on the KSE-30.`;
   if (score < 25) {
     label = "Extreme Fear";
     color = "#EA3943";
-    blurb = `Heavy selling — only ${advancers} of ${total} KSE-30 names are green.`;
+    blurb = `Heavy selling, only ${advancers} of ${total} KSE-30 names are green.`;
   } else if (score < 45) {
     label = "Fear";
     color = "#FF8A00";
-    blurb = `Caution dominates — ${decliners} decliners outweigh ${advancers} advancers.`;
+    blurb = `Caution dominates, ${decliners} decliners outweigh ${advancers} advancers.`;
   } else if (score < 56) {
     label = "Neutral";
     color = "#FFD700";
-    blurb = `Breadth is balanced — ${advancers} up vs ${decliners} down on the KSE-30.`;
+    blurb = `Breadth is balanced, ${advancers} up vs ${decliners} down on the KSE-30.`;
   } else if (score < 75) {
     label = "Greed";
     color = "#7CCB57";
-    blurb = `Buying interest is strong — ${advancers} of ${total} KSE-30 names are green.`;
+    blurb = `Buying interest is strong, ${advancers} of ${total} KSE-30 names are green.`;
   } else {
     label = "Extreme Greed";
     color = "#16C784";
-    blurb = `Risk appetite is high — ${advancers} of ${total} KSE-30 names are green.`;
+    blurb = `Risk appetite is high, ${advancers} of ${total} KSE-30 names are green.`;
   }
 
   return { score, label, color, blurb, advancers, decliners };
@@ -233,13 +233,13 @@ function buildStockRisk({ stock, stats, stocks }) {
 
   let advice = "Monitor volume and volatility for confirmation.";
   if (volatility === "High")
-    advice = "Size positions smaller — swings are wider than usual.";
+    advice = "Size positions smaller, swings are wider than usual.";
   else if (drawdown === "High")
-    advice = `Price sits ${drawdownPct.toFixed(1)}% below its 60d high — wait for support.`;
+    advice = `Price sits ${drawdownPct.toFixed(1)}% below its 60d high, wait for support.`;
   else if (beta != null && beta > 1.3)
-    advice = "Moves faster than the market — expect amplified swings.";
+    advice = "Moves faster than the market, expect amplified swings.";
   else if (volatility === "Low" && drawdown === "Low")
-    advice = "Stable behavior — suitable for steady accumulation.";
+    advice = "Stable behavior, suitable for steady accumulation.";
 
   return {
     level,
@@ -254,7 +254,7 @@ function buildStockRisk({ stock, stats, stocks }) {
 
 // ---- Insights Feed ------------------------------------------------------
 
-// Keep only news that actually reference this stock — match the ticker as a
+// Keep only news that actually reference this stock, match the ticker as a
 // whole word or a distinctive token from the company name. Anything else
 // (generic market headlines from the fallback feed, unrelated companies that
 // share a substring) is dropped so the panel never shows irrelevant news.
@@ -307,7 +307,7 @@ function buildFeed({ stock, predictChange, stats, sentiment, news, horizon }) {
       title: `Model projects ${up ? "+" : ""}${predictChange.toFixed(2)}% over ${horizon || "the forecast"} days`,
       body: up
         ? `The LSTM expects ${sym} to drift higher relative to its current close.`
-        : `The LSTM expects ${sym} to drift lower — momentum may be fading.`,
+        : `The LSTM expects ${sym} to drift lower, momentum may be fading.`,
       time: "live",
     });
   }

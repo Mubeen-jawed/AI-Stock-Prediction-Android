@@ -168,7 +168,7 @@ export default function StockDetailScreen() {
   // The model server runs on Render free tier and sleeps after ~15 min of
   // inactivity. The first request after a sleep cold-starts TensorFlow and
   // can exceed the Node backend's 90s upstream timeout, producing a 502.
-  // We retry the request once after a short pause — by then the service
+  // We retry the request once after a short pause, by then the service
   // is warm and the second attempt succeeds.
   useEffect(() => {
     if (!symbol) return;
@@ -213,7 +213,7 @@ export default function StockDetailScreen() {
         } catch (err) {
           lastErr = err;
           // 502/503/504 + network errors are typical of the Python service
-          // cold-starting on Render — retry. Other statuses (400/404/500
+          // cold-starting on Render, retry. Other statuses (400/404/500
           // from a real model error) are not worth retrying.
           const retryable =
             err.status == null ||
@@ -222,7 +222,7 @@ export default function StockDetailScreen() {
             err.status === 504;
           if (!retryable || attempt === MAX_ATTEMPTS) break;
           if (!cancelled) setPredictionsWarming(true);
-          // 6s, then 14s — gives the model server time to load TensorFlow.
+          // 6s, then 14s, gives the model server time to load TensorFlow.
           await sleep(attempt === 1 ? 6000 : 14000);
         }
       }
@@ -694,15 +694,15 @@ export default function StockDetailScreen() {
               </TouchableOpacity>
             </View>
           )}
-          {predictionArray.length > 0 && (
+          {/* {predictionArray.length > 0 && (
             <StockAISignal
               predictChange={predictChange}
               meta={predictionMeta}
               horizonDays={predictionArray.length}
             />
-          )}
+          )} */}
 
-          {/* AI Insights — stock-specific, mirroring the AI Insights page */}
+          {/* AI Insights, stock-specific, mirroring the AI Insights page */}
           {aiInsights ? (
             <View style={styles.insightsSection}>
               <StockSmartSummaryCard summary={aiInsights.summary} />

@@ -21,7 +21,7 @@ const NotificationScreen = () => {
 
         <View style={styles.headerRight}>
           <TouchableOpacity style={[styles.iconButton, { marginLeft: 12 }]}>
-            <Feather name="settings" size={20} color="#FFFFFF" />
+            {/* <Feather name="settings" size={20} color="#FFFFFF" /> */}
           </TouchableOpacity>
         </View>
       </View>

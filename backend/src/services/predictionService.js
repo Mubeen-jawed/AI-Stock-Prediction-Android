@@ -15,7 +15,7 @@ async function predictPrice(symbol, days = 7, modelType = "lstm") {
     const response = await axios.post(
       `${PYTHON_API_URL}/prediction`,
       { symbol, days, model_type: modelType },
-      { timeout: 90000 }, // 90s — covers Render free-tier cold starts
+      { timeout: 90000 }, // 90s, covers Render free-tier cold starts
     );
 
     return response.data;

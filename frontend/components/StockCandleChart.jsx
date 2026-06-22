@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { View, Text, ActivityIndicator, Dimensions } from "react-native";
 import { CandlestickChart } from "react-native-wagmi-charts";
+import OHLCTooltip from "./OHLCTooltip";
 
 function toMsTimestamp(t) {
   if (t == null) return null;
@@ -26,7 +27,10 @@ function toMsTimestamp(t) {
  * Intelligently downsample candles to optimal count for clean rendering
  * Uses bucketing to preserve price action while reducing clutter
  */
-const SLOT_WIDTH = 6;
+const SLOT_WIDTH = 9;
+// Fraction of each slot occupied by the candle body; the remainder is the gap
+// between candles (gives the clean, separated brokerage look in all ranges).
+const CANDLE_FILL = 0.66;
 
 function optimizeCandles(candles, rangeKey, chartWidth) {
   if (!Array.isArray(candles) || candles.length === 0) return [];
@@ -296,55 +300,35 @@ export default function StockCandleChart({ chart, loading, rangeKey }) {
         </Text>
       )}
       <CandlestickChart.Provider data={displayCandles}>
-        {/* Crosshair labels */}
+        {/* Chart + Y axis */}
         <View
           style={{
+            flexDirection: "row",
             paddingHorizontal: PADDING_H,
             paddingTop: 12,
-            paddingBottom: 8,
           }}
         >
-          <CandlestickChart.PriceText
-            style={{
-              color: "#E6EEF8",
-              fontSize: 13,
-              fontWeight: "600",
-            }}
-          />
-          <CandlestickChart.DatetimeText
-            style={{
-              color: "#A7B1BC",
-              fontSize: 10,
-              marginTop: 2,
-            }}
-          />
-        </View>
-
-        {/* Chart + Y axis */}
-        <View style={{ flexDirection: "row", paddingHorizontal: PADDING_H }}>
           {/* Chart */}
           <View style={{ width: CHART_W }}>
             <CandlestickChart height={250} width={CHART_W}>
               <CandlestickChart.Candles
                 positiveColor="#22c55e"
                 negativeColor="#ef4444"
-                // Fill the slot width fully so adjacent candles touch (no gaps).
+                // Leave a gap between candles so they read as discrete bars
+                // (brokerage style) instead of a solid block.
                 candleWidth={
                   displayCandles.length > 0
-                    ? CHART_W / displayCandles.length
-                    : SLOT_WIDTH
+                    ? (CHART_W / displayCandles.length) * CANDLE_FILL
+                    : SLOT_WIDTH * CANDLE_FILL
                 }
               />
-              <CandlestickChart.Crosshair>
-                <CandlestickChart.Tooltip
-                  textStyle={{
-                    color: "#fff",
-                    fontSize: 11,
-                    fontWeight: "500",
-                  }}
-                />
-              </CandlestickChart.Crosshair>
+              {/* Vertical scrubbing line; OHLC values are shown in the
+                  floating box above instead of an inline tooltip. */}
+              <CandlestickChart.Crosshair color="#6B7280" />
             </CandlestickChart>
+            {/* Brokerage-style OHLC popup overlaid on the chart, visible
+                while scrubbing (rendered last so it stacks on top). */}
+            <OHLCTooltip rangeKey={rangeKey} />
           </View>
 
           {/* Y axis labels */}
