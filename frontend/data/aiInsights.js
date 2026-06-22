@@ -151,7 +151,7 @@ function buildSentiment(stocks) {
   let blurb = "Market is balanced with no clear directional bias.";
   if (score < 25) {
     label = "Extreme Fear"; color = "#EA3943";
-    blurb = "Heavy selling pressure — investors are risk-averse.";
+    blurb = "Heavy selling pressure, investors are risk-averse.";
   } else if (score < 45) {
     label = "Fear"; color = "#FF8A00";
     blurb = "Caution dominates with more decliners than advancers.";
@@ -163,7 +163,7 @@ function buildSentiment(stocks) {
     blurb = "Market is showing signs of greed with high buying interest.";
   } else {
     label = "Extreme Greed"; color = "#16C784";
-    blurb = "Strong risk appetite — broad-based buying across sectors.";
+    blurb = "Strong risk appetite, broad-based buying across sectors.";
   }
 
   return { score, label, color, blurb, advancers, decliners };
@@ -207,7 +207,7 @@ function buildRisk(portfolio, stocks) {
       : positions.length < 4
         ? "Add more holdings to diversify further"
         : volatility === "High"
-          ? "Holdings moved widely today — consider trimming the most volatile names"
+          ? "Holdings moved widely today, consider trimming the most volatile names"
           : "Spread across more sectors to reduce concentration";
 
   return {
@@ -273,7 +273,7 @@ function buildFeed(stocks, sentiment, news) {
     });
   }
 
-  // News headlines (no AI claim — we don't actually score them)
+  // News headlines (no AI claim, we don't actually score them)
   (news || []).slice(0, 3).forEach((n, i) => {
     if (!n?.title) return;
     feed.push({

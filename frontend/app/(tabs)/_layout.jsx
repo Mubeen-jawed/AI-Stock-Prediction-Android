@@ -5,6 +5,7 @@ import { View } from "react-native";
 export default function TabsLayout() {
   return (
     <Tabs
+      backBehavior="history"
       sceneContainerStyle={{ backgroundColor: "#05060A" }}
       screenOptions={{
         headerShown: false,
@@ -103,6 +104,34 @@ export default function TabsLayout() {
 
       <Tabs.Screen
         name="watchlist"
+        options={{
+          href: null, // hidden
+        }}
+      />
+
+      <Tabs.Screen
+        name="brokers"
+        options={{
+          href: null, // hidden
+        }}
+      />
+
+      <Tabs.Screen
+        name="calendar"
+        options={{
+          href: null, // hidden
+        }}
+      />
+
+      <Tabs.Screen
+        name="more"
+        options={{
+          href: null, // hidden
+        }}
+      />
+
+      <Tabs.Screen
+        name="community"
         options={{
           href: null, // hidden
         }}

@@ -55,7 +55,7 @@ cd backend/ai-models/price-prediction
   requirements.utf8.txt                                                         
   
   Then create a venv and install. The deps include TensorFlow, Prophet          
-  (cmdstanpy), yfinance, FastAPI, etc. — recommend Python 3.11 (TF 2.16 / numpy
+  (cmdstanpy), yfinance, FastAPI, etc., recommend Python 3.11 (TF 2.16 / numpy
   1.26 don't support 3.13):                                                     
                   
   python3.11 -m venv venv
@@ -63,10 +63,10 @@ cd backend/ai-models/price-prediction
   pip install --upgrade pip
   pip install -r requirements.utf8.txt
 
-  Note: tensorflow-intel==2.16.1 is Windows-only — if install fails on Linux,   
+  Note: tensorflow-intel==2.16.1 is Windows-only, if install fails on Linux,   
   drop that line. Prophet also needs a working C++ toolchain (build-essential).
                                                                                 
-  Run the API (FastAPI app is app/main.py, no __main__ block — use uvicorn      
+  Run the API (FastAPI app is app/main.py, no __main__ block, use uvicorn      
   directly; commented code suggests port 8001):
                                                                                 
   uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload

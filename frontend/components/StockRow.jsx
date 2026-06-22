@@ -15,23 +15,26 @@ export default function StockRow({
   const up = changePercent >= 0;
   const router = useRouter();
 
-  console.log(`https://img.logo.dev/${logo}`, "logo uri");
-
   return (
     <TouchableOpacity
-      onPress={() => {
-        router.push(`/stocks/${ticker}`);
-        console.log(ticker, "ticker");
-      }}
+      onPress={() => router.push(`/stocks/${ticker}`)}
       key={name}
       style={styles.row}
     >
-      <Image
-        source={{
-          uri: `https://img.logo.dev/${logo}?token=pk_P253PcFaTZepqM7o3SqeWw`,
-        }}
-        style={styles.logo}
-      />
+      {logo ? (
+        <Image
+          source={{
+            uri: `https://img.logo.dev/${logo}?token=pk_P253PcFaTZepqM7o3SqeWw`,
+          }}
+          style={styles.logo}
+        />
+      ) : (
+        <View style={[styles.logo, styles.logoFallback]}>
+          <Text style={styles.logoFallbackTxt}>
+            {(ticker || name || "?").slice(0, 2).toUpperCase()}
+          </Text>
+        </View>
+      )}
       <View style={{ flex: 1 }}>
         <Text style={styles.name}>
           {ticker} <Text style={styles.ticker}></Text>
@@ -73,6 +76,12 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   logo: { width: 32, height: 32, borderRadius: 16, marginRight: 10 },
+  logoFallback: {
+    backgroundColor: "#1f1f1f",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logoFallbackTxt: { color: "#FFD700", fontSize: 12, fontWeight: "700" },
   name: { color: "#e8eaed", fontWeight: "700" },
   ticker: { color: "#9aa0a6", fontWeight: "400" },
   vol: { color: "#9aa0a6", fontSize: 12, marginTop: 2 },

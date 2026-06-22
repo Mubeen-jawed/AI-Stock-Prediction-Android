@@ -25,20 +25,22 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState(null); // "google" | "discord"
 
   const handleSocialAuth = async (provider) => {
     try {
-      setError(false);
+      setError("");
       setSocialLoading(provider);
       const result = await signInWithProvider(provider);
       if (result.type !== "success") return; // user cancelled
       await login(result.user, result.token);
       router.replace("/home");
     } catch (err) {
-      setError(true);
+      setError(
+        `Couldn't sign in with ${provider}. Please try again.`,
+      );
       console.log(`${provider} login error:`, err);
     } finally {
       setSocialLoading(null);
@@ -46,19 +48,31 @@ export default function Login() {
   };
 
   const handleLogin = async () => {
+    setError("");
+
+    if (!email.trim() || !password) {
+      setError("Please enter your email and password.");
+      return;
+    }
+
     try {
       setLoading(true);
 
       const res = await fetch(`${API_URL}/api/users/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: email.trim(), password }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        setError(true);
-        throw new Error(data.message || "Login failed");
+        setError(
+          data.message === "Invalid credentials"
+            ? "Incorrect email or password. Please try again."
+            : data.message || "Login failed. Please try again.",
+        );
+        return;
       }
 
       // data should contain { user, token }
@@ -67,7 +81,9 @@ export default function Login() {
       // Go to main app (e.g. tabs)
       router.replace("/home");
     } catch (err) {
-      setError(true);
+      setError(
+        "Can't reach the server. Please check your connection and try again.",
+      );
       console.log("Login error:", err);
     } finally {
       setLoading(false);
@@ -146,11 +162,12 @@ export default function Login() {
             <Text style={styles.forgotPasswordText}>Forgot Password</Text>
           </TouchableOpacity> */}
 
-          <View>
-            <Text style={{ color: "red", margin: "10px 0" }}>
-              {error ? "Invalid email or password" : ""}
-            </Text>
-          </View>
+          {error ? (
+            <View style={styles.errorBox}>
+              <Ionicons name="alert-circle" size={18} color="#FF6B6B" />
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : null}
 
           {/* Login Button */}
           <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
@@ -226,6 +243,20 @@ const styles = StyleSheet.create({
   signUpText: { color: "#FFA726", fontWeight: "600" },
 
   content: { flex: 1, paddingHorizontal: 20, paddingTop: 20 },
+
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "rgba(234,57,67,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(234,57,67,0.5)",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 18,
+  },
+  errorText: { color: "#FF6B6B", fontSize: 13, fontWeight: "500", flex: 1 },
 
   toggleContainer: { flexDirection: "row", marginBottom: 20 },
   toggleButton: {

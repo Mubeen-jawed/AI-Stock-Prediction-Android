@@ -4,6 +4,7 @@ const { User } = require("../models/User.js");
 const {
   getCompanyProfile,
   getLivePrice,
+  fetchSingleStock,
 } = require("../services/stockService.js");
 const nodemailer = require("nodemailer");
 
@@ -103,14 +104,12 @@ const saveToWatchlist = async (req, res) => {
       });
     }
 
-    // ✅ If not exists -> fetch once from Finnhub and store full snapshot
-    const [profile, quote] = await Promise.all([
-      getCompanyProfile(normalizedSymbol),
-      getLivePrice(normalizedSymbol),
-    ]);
+    // ✅ If not exists -> fetch the PSX snapshot once and store it.
+    // (These are PSX tickers, so use the PSX/TradingView source, not Finnhub.)
+    const stock = await fetchSingleStock(normalizedSymbol);
 
-    // (Optional) if Finnhub fails, return error so you don't save empty garbage
-    if (!profile && !quote) {
+    // If the source fails, don't save an empty/garbage row.
+    if (!stock) {
       return res.status(502).json({
         message: `Failed to fetch stock data for ${normalizedSymbol}`,
       });
@@ -118,10 +117,10 @@ const saveToWatchlist = async (req, res) => {
 
     const watchlistItem = {
       symbol: normalizedSymbol,
-      name: profile?.name || null,
-      logo: profile?.logo || null,
-      price: quote?.currentPrice ?? null,
-      changePercent: quote?.percentChange ?? null,
+      name: stock.name || normalizedSymbol,
+      logo: stock.logo || null,
+      price: stock.price ?? null,
+      changePercent: stock.changePercent ?? null,
       addedAt: new Date(),
       lastSyncedAt: new Date(),
     };

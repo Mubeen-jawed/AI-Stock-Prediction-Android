@@ -10,7 +10,7 @@ const items = [
     route: "/portfolio/add-stock",
   },
   { icon: "heart-outline", label: "Watchlist", route: "/watchlist" },
-  { icon: "ellipsis-horizontal-circle-outline", label: "More", route: "/" },
+  { icon: "ellipsis-horizontal-circle-outline", label: "More", route: "/more" },
 ];
 
 export default function ActionRow() {
@@ -22,6 +22,8 @@ export default function ActionRow() {
           onPress={() => router.push(i.route)} // page to build next
           key={i.label}
           style={styles.item}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <Ionicons name={i.icon} size={22} color="#e8eaed" />
           <Text style={styles.txt}>{i.label}</Text>
@@ -37,6 +39,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 20,
   },
-  item: { alignItems: "center" },
+  item: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+  },
   txt: { color: "#e8eaed", marginTop: 6, fontSize: 12 },
 });

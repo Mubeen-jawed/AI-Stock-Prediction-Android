@@ -158,7 +158,7 @@ export default function PredictiveGraph({
     return [data[0].timestamp, data[data.length - 1].timestamp];
   }, [data]);
 
-  // Y range — include the baseline so its reference line is visible
+  // Y range, include the baseline so its reference line is visible
   const yRange = useMemo(() => {
     if (!data.length) return undefined;
 
@@ -328,7 +328,7 @@ export default function PredictiveGraph({
 
       <View style={styles.chartContainer}>
         <LineChart.Provider data={data} yRange={yRange} xDomain={xDomain}>
-          {/* Cursor price (top) — shows price at the point you press */}
+          {/* Cursor price (top), shows price at the point you press */}
           <View style={styles.cursorPriceContainer}>
             <View style={styles.cursorRow}>
               <Text style={styles.cursorHint}>Tap & drag the chart →</Text>
@@ -602,7 +602,7 @@ export default function PredictiveGraph({
       </View>
 
       {/* Plain-language explainer */}
-      <View style={styles.explainerCard}>
+      {/* <View style={styles.explainerCard}>
         <View style={styles.explainerHead}>
           <Ionicons name="bulb" size={14} color="#FFD700" />
           <Text style={styles.explainerTitle}>In plain English</Text>
@@ -622,7 +622,7 @@ export default function PredictiveGraph({
           Not financial advice. Forecasts are based on past prices and can be
           wrong, news, earnings, and market shocks aren&apos;t included.
         </Text>
-      </View>
+      </View> */}
     </View>
   );
 }
@@ -968,8 +968,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 14,
     marginTop: 10,
-    borderLeftWidth: 3,
-    borderLeftColor: "#FFD700",
   },
   explainerHead: {
     flexDirection: "row",

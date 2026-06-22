@@ -27,53 +27,69 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState("");
   const [socialLoading, setSocialLoading] = useState(null); // "google" | "discord"
 
   const handleSocialAuth = async (provider) => {
     try {
-      setError(null);
+      setError("");
       setSocialLoading(provider);
       const result = await signInWithProvider(provider);
       if (result.type !== "success") return; // user cancelled
       await login(result.user, result.token);
       router.replace("/home");
     } catch (err) {
-      setError(err.message || "Signup failed");
+      setError(`Couldn't sign up with ${provider}. Please try again.`);
       console.log(`${provider} signup error:`, err);
     } finally {
       setSocialLoading(null);
     }
   };
 
-  // inside your component:
   const handleSignup = async () => {
+    setError("");
+
+    if (!name.trim() || !email.trim() || !password) {
+      setError("Please fill in your name, email and password.");
+      return;
+    }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/api/users/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name: name.trim(), email: email.trim(), password }),
       });
 
-      const data = await res.json();
-      console.log(data);
-      router.replace("/");
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setError(
+          data.message === "User already exists"
+            ? "An account with this email already exists. Try logging in instead."
+            : data.message || "Sign up failed. Please try again.",
+        );
+        return;
+      }
+
+      // Registration succeeds without a token — send the user to log in.
+      router.replace("/login");
     } catch (err) {
-      setError(data.message || "Signup failed");
+      setError(
+        "Can't reach the server. Please check your connection and try again.",
+      );
       console.log("Signup error:", err);
-      return;
     } finally {
       setLoading(false);
-      console.log("object");
     }
   };
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      {error != null && (
-        <Text style={{ color: "red", marginTop: 8 }}>{error}</Text>
-      )}
-
       <StatusBar style="light" />
 
       <KeyboardAvoidingView
@@ -148,11 +164,12 @@ export default function Signup() {
             </TouchableOpacity>
           </View>
 
-          <View>
-            <Text style={{ color: "red", margin: "10px 0" }}>
-              {error ? "An Error Occurred, please try again" : ""}
-            </Text>
-          </View>
+          {error ? (
+            <View style={styles.errorBox}>
+              <Ionicons name="alert-circle" size={18} color="#FF6B6B" />
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : null}
 
           {/* Signup Button */}
           <TouchableOpacity style={styles.signupButton} onPress={handleSignup}>
@@ -229,6 +246,20 @@ const styles = StyleSheet.create({
   switchText: { color: "#FFA726", fontWeight: "600" },
 
   content: { flex: 1, paddingHorizontal: 20, paddingTop: 20 },
+
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "rgba(234,57,67,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(234,57,67,0.5)",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 18,
+  },
+  errorText: { color: "#FF6B6B", fontSize: 13, fontWeight: "500", flex: 1 },
 
   toggleContainer: { flexDirection: "row", marginBottom: 20 },
   toggleButton: {

@@ -100,19 +100,12 @@ export default function StocksScreen() {
           <SkeletonLoader />
         ) : (
           rows
-            .filter(
-              (s) =>
-                s.name &&
-                s.logo &&
-                s.symbol &&
-                typeof s.price === "number" &&
-                s.changePercent !== undefined
-            )
+            .filter((s) => s && s.symbol && typeof s.price === "number")
             .map((s) => (
               <StockRow
                 key={s.symbol}
                 logo={s.logo}
-                name={s.name}
+                name={s.name || s.symbol}
                 ticker={s.symbol}
                 price={s.price.toLocaleString()}
                 changePercent={s.changePercent}

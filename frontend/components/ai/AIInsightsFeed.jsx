@@ -37,7 +37,6 @@ export default function AIInsightsFeed({ feed = [] }) {
     <View style={styles.card}>
       <View style={styles.header}>
         <Text style={styles.heading}>AI Insights</Text>
-        <Text style={styles.viewAll}>Live</Text>
       </View>
       {feed.length === 0 ? (
         <Text style={styles.empty}>No insights generated yet.</Text>
